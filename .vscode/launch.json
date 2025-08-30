@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // GPU kernel debugging on Linux/WSL via Nsight VS Code (cuda-gdb)
+      "name": "CUDA C++: Launch (cuda-gdb)",
+      "type": "cuda-gdb",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      // Change it to local cuda-gdb
+      "linux": {
+        "debuggerPath": "/usr/bin/cuda-gdb"
+      },
+      "windows": {
+        "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
+      },
+      "breakOnLaunch": false,
+      "onAPIError": "stop"
+    }
+  ]
+}

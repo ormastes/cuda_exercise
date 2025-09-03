@@ -1,9 +1,12 @@
 {
-    "cmake.generator": "Ninja",
     "cmake.configureArgs": [
-        "-DCMAKE_C_COMPILER=clang",
-        "-DCMAKE_CXX_COMPILER=clang++",
         "-DCMAKE_BUILD_TYPE=Debug",
-        "-DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE"
-    ]
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "files.associations": {
+        "*.cu": "cuda-cpp",
+        "*.cuh": "cuda-cpp"
+    }
 }

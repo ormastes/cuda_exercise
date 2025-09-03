@@ -11,15 +11,17 @@ echo ""
 echo "Installing required extensions..."
 code --install-extension ms-vscode.cpptools-extension-pack
 code --install-extension nvidia.nsight-vscode-edition
+code --install-extension ms-vscode.cmake-tools
+code --install-extension matepek.vscode-catch2-test-adapter
 
 # Recommended extensions
 echo ""
 echo "Installing recommended extensions..."
-code --install-extension twxs.cmake
 code --install-extension kriegalex.vscode-cuda
 code --install-extension hars.cppsnippets
 code --install-extension jeff-hykin.better-cpp-syntax
 code --install-extension llvm-vs-code-extensions.vscode-clangd
+code --install-extension llvm-vs-code-extensions.lldb-dap
 
 # Optional extensions
 echo ""

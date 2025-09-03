@@ -11,6 +11,7 @@ int main() {
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
     myKernel<<<1, 1>>>();
+    cudaDeviceSynchronize();
     std::cout << "Number of CUDA devices: " << deviceCount << std::endl;
     return 0;
 }

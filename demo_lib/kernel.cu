@@ -12,4 +12,5 @@ __global__ void myKernel() {
 
 void launchKernel() {
     myKernel<<<1, 1>>>();
+    cudaDeviceSynchronize();
 }

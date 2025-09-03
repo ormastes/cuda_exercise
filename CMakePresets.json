@@ -4,12 +4,24 @@
         {
             "name": "default",
             "displayName": "Default Config",
-            "description": "Default build using Ninja and Clang",
+            "description": "Default build using Ninja",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
-                "CMAKE_C_COMPILER": "clang-18",
-                "CMAKE_CXX_COMPILER": "clang++-18",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "default-clang",
+            "displayName": "Default Config (Clang)",
+            "description": "Default build using Ninja and Clang for C++",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build-clang",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_CUDA_HOST_COMPILER": "clang++",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
@@ -17,12 +29,10 @@
         {
             "name": "release",
             "displayName": "Release Config",
-            "description": "Release build using Ninja and Clang",
+            "description": "Release build using Ninja",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build-release",
             "cacheVariables": {
-                "CMAKE_C_COMPILER": "clang-18",
-                "CMAKE_CXX_COMPILER": "clang++-18",
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
@@ -32,6 +42,10 @@
         {
             "name": "default",
             "configurePreset": "default"
+        },
+        {
+            "name": "default-clang",
+            "configurePreset": "default-clang"
         },
         {
             "name": "release",

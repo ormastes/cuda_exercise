@@ -62,18 +62,18 @@ ninja
 2. **CMake Tools** (`ms-vscode.cmake-tools`)
    - CMake integration with VS Code
    - Build, configure, and debug CMake projects
-   - Already included in C/C++ Extension Pack
 
 3. **Nsight Visual Studio Code Edition** (`nvidia.nsight-vscode-edition`)
    - CUDA debugging support
    - GPU kernel debugging
    - CUDA-GDB integration
 
-### Recommended Extensions
+4. **Catch2 Test Adapter** (`matepek.vscode-catch2-test-adapter`)
+   - Run and debug Catch2 tests from VS Code
+   - Test explorer integration
+   - Visual test status indicators
 
-4. **CMake Language Support** (`twxs.cmake`)
-   - Syntax highlighting for CMake files
-   - Auto-completion for CMake commands
+### Recommended Extensions
 
 5. **CUDA C++** (`kriegalex.vscode-cuda`)
    - CUDA syntax highlighting
@@ -90,37 +90,55 @@ ninja
    - Better support for Clang-specific features
    - More accurate code completion and diagnostics
 
+9. **LLDB DAP** (`llvm-vs-code-extensions.lldb-dap`)
+   - LLDB debugger integration
+   - Better debugging experience with Clang-compiled code
+
 ### Optional Extensions
 
-9. **Error Lens** (`usernamehw.errorlens`)
-   - Shows errors and warnings inline
+10. **Error Lens** (`usernamehw.errorlens`)
+    - Shows errors and warnings inline
 
-10. **GitLens** (`eamodio.gitlens`)
+11. **GitLens** (`eamodio.gitlens`)
     - Enhanced Git integration
 
-11. **Code Spell Checker** (`streetsidesoftware.code-spell-checker`)
+12. **Code Spell Checker** (`streetsidesoftware.code-spell-checker`)
     - Spell checking for code and comments
 
 ## Installing VS Code Extensions
 
-### Method 1: Through VS Code UI
+### Method 1: Automated Installation Scripts
+
+**Linux/macOS:**
+```bash
+./install-vscode-extensions.sh
+```
+
+**Windows:**
+```batch
+install-vscode-extensions.bat
+```
+
+### Method 2: Through VS Code UI
 1. Open VS Code
 2. Click on Extensions icon (Ctrl+Shift+X)
 3. Search for each extension by name
 4. Click Install
 
-### Method 2: Command Line
+### Method 3: Command Line
 ```bash
 # Install required extensions
 code --install-extension ms-vscode.cpptools-extension-pack
 code --install-extension nvidia.nsight-vscode-edition
+code --install-extension ms-vscode.cmake-tools
+code --install-extension matepek.vscode-catch2-test-adapter
 
 # Install recommended extensions
-code --install-extension twxs.cmake
 code --install-extension kriegalex.vscode-cuda
 code --install-extension hars.cppsnippets
 code --install-extension jeff-hykin.better-cpp-syntax
 code --install-extension llvm-vs-code-extensions.vscode-clangd
+code --install-extension llvm-vs-code-extensions.lldb-dap
 
 # Install optional extensions
 code --install-extension usernamehw.errorlens

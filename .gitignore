@@ -39,6 +39,10 @@ build.ninja
 *.exe
 *.out
 *.app
+demo/demo
+demo/demo_debug
+demo_lib/demo_lib
+test_kernel
 
 # Object files
 *.o

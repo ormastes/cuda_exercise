@@ -2,12 +2,23 @@
 
 A CUDA development project template with CMake build system and VS Code integration.
 
+**Language versions:** [한국어](README.ko.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [中文](README.zh.md) | [Español](README.es.md) | [Italiano](README.it.md) | [Nederlands](README.nl.md) | [Português](README.pt.md) | [Русский](README.ru.md)
+
+## Tested Configurations
+
+✅ **Successfully tested with:**
+- Ubuntu 24.04 LTS
+- Clang 20
+- CUDA Toolkit 13.0
+- CMake 3.28+
+- Ninja 1.11+
+
 ## Prerequisites
 
-- CUDA Toolkit (12.0 or later)
+- CUDA Toolkit (12.0 or later, tested with 13.0)
 - CMake (3.24 or later)
 - Ninja build system
-- Clang/LLVM compiler (or GCC)
+- Clang/LLVM compiler (tested with Clang 20) or GCC
 
 ## Building the Project
 
@@ -187,12 +198,42 @@ Debug configurations for CUDA applications with platform-specific debugger paths
 
 ## Troubleshooting
 
+### Environment-Specific Configuration
+
+When changing your development environment or CUDA version, update the following paths:
+
+#### 1. Update debuggerPath in `.vscode/launch.json`
+The debugger path must match your CUDA installation version and location:
+```json
+"windows": {
+    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
+    // Update to v13.0 or your installed version:
+    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
+}
+```
+
+For Linux/WSL:
+```json
+"linux": {
+    "debuggerPath": "/usr/bin/cuda-gdb"
+    // Or if installed in a different location:
+    // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
+}
+```
+
+#### 2. Verify CUDA Toolkit Path
+Ensure your system PATH includes the correct CUDA version:
+- Windows: `C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.0\bin`
+- Linux: `/usr/local/cuda-13.0/bin`
+
 ### CUDA Architecture Warning
 If you see "Cannot find valid GPU for '-arch=native'", this means CMake cannot detect your GPU architecture. You can specify it manually in `CMakeLists.txt`:
 ```cmake
 set(CMAKE_CUDA_ARCHITECTURES "75")  # For GTX 1660 Ti, RTX 2060-2080
 set(CMAKE_CUDA_ARCHITECTURES "86")  # For RTX 3060-3090
 set(CMAKE_CUDA_ARCHITECTURES "89")  # For RTX 4090
+# Or for building without GPU (supports multiple architectures):
+set(CMAKE_CUDA_ARCHITECTURES "75;80;86;89;90")
 ```
 
 ### Clang Version Compatibility

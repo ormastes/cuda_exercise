@@ -27,6 +27,20 @@
             }
         },
         {
+            "name": "default-msvc",
+            "displayName": "Default Config (MSVC)",
+            "description": "Default build using Visual Studio generator for MSVC",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/build-msvc",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "set"
+            }
+        },
+        {
             "name": "release",
             "displayName": "Release Config",
             "description": "Release build using Ninja",
@@ -46,6 +60,11 @@
         {
             "name": "default-clang",
             "configurePreset": "default-clang"
+        },
+        {
+            "name": "default-msvc",
+            "configurePreset": "default-msvc",
+            "configuration": "Debug"
         },
         {
             "name": "release",

@@ -161,6 +161,9 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### CUDA Debugging in VS Code
 
+**Note:** CUDA debugging is currently only supported on Linux. Windows users can compile and run CUDA code but cannot use cuda-gdb for debugging.
+
+#### Linux
 1. Set breakpoints in your CUDA code (.cu files)
 2. Press `F5` or go to Run and Debug
 3. Select "CUDA C++: Launch (cuda-gdb)" configuration
@@ -168,9 +171,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### Available Debug Configurations
 
-- **CUDA C++: Launch (cuda-gdb)**: Debug CUDA code with cuda-gdb
+- **CUDA C++: Launch (cuda-gdb)**: Debug CUDA code with cuda-gdb (Linux only)
 - Uses CMake's current target selection
-- Supports both Linux and Windows platforms
 
 ## Configuration Files
 
@@ -202,17 +204,8 @@ Debug configurations for CUDA applications with platform-specific debugger paths
 
 When changing your development environment or CUDA version, update the following paths:
 
-#### 1. Update debuggerPath in `.vscode/launch.json`
-The debugger path must match your CUDA installation version and location:
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // Update to v13.0 or your installed version:
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-For Linux/WSL:
+#### 1. Update debuggerPath in `.vscode/launch.json` (Linux only)
+For Linux users, the debugger path must match your CUDA installation:
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -220,6 +213,8 @@ For Linux/WSL:
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Windows Note:** CUDA debugging with cuda-gdb is not supported on Windows. Windows users can compile and run CUDA applications but should use alternative debugging methods such as printf debugging or NVIDIA Nsight Systems/Compute for profiling.
 
 #### 2. Verify CUDA Toolkit Path
 Ensure your system PATH includes the correct CUDA version:

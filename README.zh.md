@@ -161,6 +161,9 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### VS Code 中的 CUDA 调试
 
+**注意：**CUDA 调试目前仅在 Linux 上支持。Windows 用户可以编译和运行 CUDA 代码，但不能使用 cuda-gdb 进行调试。
+
+#### Linux
 1. 在您的 CUDA 代码（.cu 文件）中设置断点
 2. 按 `F5` 或转到运行和调试
 3. 选择 "CUDA C++: Launch (cuda-gdb)" 配置
@@ -168,9 +171,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### 可用的调试配置
 
-- **CUDA C++: Launch (cuda-gdb)**：使用 cuda-gdb 调试 CUDA 代码
+- **CUDA C++: Launch (cuda-gdb)**：使用 cuda-gdb 调试 CUDA 代码（仅 Linux）
 - 使用 CMake 的当前目标选择
-- 支持 Linux 和 Windows 平台
 
 ## 配置文件
 
@@ -202,17 +204,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 更改开发环境或 CUDA 版本时，请更新以下路径：
 
-#### 1. 更新 `.vscode/launch.json` 中的 debuggerPath
-调试器路径必须与您的 CUDA 安装版本和位置匹配：
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // 更新到 v13.0 或您安装的版本：
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-对于 Linux/WSL：
+#### 1. 更新 `.vscode/launch.json` 中的 debuggerPath（仅 Linux）
+对于 Linux 用户，调试器路径必须与您的 CUDA 安装相匹配：
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -220,6 +213,8 @@ code --install-extension streetsidesoftware.code-spell-checker
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Windows 注意：**Windows 上不支持使用 cuda-gdb 进行 CUDA 调试。Windows 用户可以编译和运行 CUDA 应用程序，但应使用替代调试方法，如 printf 调试或使用 NVIDIA Nsight Systems/Compute 进行分析。
 
 #### 2. 验证 CUDA Toolkit 路径
 确保您的系统 PATH 包含正确的 CUDA 版本：

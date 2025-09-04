@@ -161,6 +161,9 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### Отладка CUDA в VS Code
 
+**Примечание:** Отладка CUDA в настоящее время поддерживается только на Linux. Пользователи Windows могут компилировать и запускать код CUDA, но не могут использовать cuda-gdb для отладки.
+
+#### Linux
 1. Установите точки прерывания в вашем коде CUDA (файлы .cu)
 2. Нажмите `F5` или перейдите в Запуск и Отладка
 3. Выберите конфигурацию "CUDA C++: Launch (cuda-gdb)"
@@ -168,9 +171,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### Доступные Конфигурации Отладки
 
-- **CUDA C++: Launch (cuda-gdb)**: Отладка кода CUDA с cuda-gdb
+- **CUDA C++: Launch (cuda-gdb)**: Отладка кода CUDA с cuda-gdb (только Linux)
 - Использует текущий выбор целевого объекта CMake
-- Поддерживает платформы Linux и Windows
 
 ## Файлы Конфигурации
 
@@ -202,17 +204,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 При изменении среды разработки или версии CUDA, обновите следующие пути:
 
-#### 1. Обновите debuggerPath в `.vscode/launch.json`
-Путь отладчика должен соответствовать версии и расположению вашей установки CUDA:
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // Обновите до v13.0 или вашей установленной версии:
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-Для Linux/WSL:
+#### 1. Обновите debuggerPath в `.vscode/launch.json` (только Linux)
+Для пользователей Linux путь отладчика должен соответствовать вашей установке CUDA:
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -220,6 +213,8 @@ code --install-extension streetsidesoftware.code-spell-checker
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Примечание для Windows:** Отладка CUDA с cuda-gdb не поддерживается на Windows. Пользователи Windows могут компилировать и запускать приложения CUDA, но должны использовать альтернативные методы отладки, такие как отладка через printf или NVIDIA Nsight Systems/Compute для профилирования.
 
 #### 2. Проверьте Путь CUDA Toolkit
 Убедитесь, что PATH вашей системы включает правильную версию CUDA:

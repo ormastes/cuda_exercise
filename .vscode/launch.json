@@ -14,6 +14,7 @@
         "debuggerPath": "/usr/bin/cuda-gdb"
       },
       "windows": {
+        // currently windows not supported, please use WSL. next does not work.
         "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe" // Or v13.0 base on your installation
       },
       "breakOnLaunch": false,

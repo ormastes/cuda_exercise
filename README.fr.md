@@ -161,6 +161,9 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### Débogage CUDA dans VS Code
 
+**Remarque :** Le débogage CUDA n'est actuellement supporté que sous Linux. Les utilisateurs Windows peuvent compiler et exécuter du code CUDA mais ne peuvent pas utiliser cuda-gdb pour le débogage.
+
+#### Linux
 1. Définir des points d'arrêt dans votre code CUDA (fichiers .cu)
 2. Appuyez sur `F5` ou allez dans Exécuter et Déboguer
 3. Sélectionnez la configuration "CUDA C++: Launch (cuda-gdb)"
@@ -168,9 +171,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### Configurations de Débogage Disponibles
 
-- **CUDA C++: Launch (cuda-gdb)** : Déboguer le code CUDA avec cuda-gdb
+- **CUDA C++: Launch (cuda-gdb)** : Déboguer le code CUDA avec cuda-gdb (Linux uniquement)
 - Utilise la sélection de cible actuelle de CMake
-- Supporte les plateformes Linux et Windows
 
 ## Fichiers de Configuration
 
@@ -202,17 +204,8 @@ Configurations de débogage pour les applications CUDA avec chemins de débogueu
 
 Lors du changement de votre environnement de développement ou version CUDA, mettez à jour les chemins suivants :
 
-#### 1. Mettre à jour debuggerPath dans `.vscode/launch.json`
-Le chemin du débogueur doit correspondre à votre version et emplacement d'installation CUDA :
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // Mettre à jour vers v13.0 ou votre version installée :
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-Pour Linux/WSL :
+#### 1. Mettre à jour debuggerPath dans `.vscode/launch.json` (Linux uniquement)
+Pour les utilisateurs Linux, le chemin du débogueur doit correspondre à votre installation CUDA :
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -220,6 +213,8 @@ Pour Linux/WSL :
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Note Windows :** Le débogage CUDA avec cuda-gdb n'est pas supporté sous Windows. Les utilisateurs Windows peuvent compiler et exécuter des applications CUDA mais doivent utiliser des méthodes de débogage alternatives comme le débogage par printf ou NVIDIA Nsight Systems/Compute pour le profilage.
 
 #### 2. Vérifier le Chemin CUDA Toolkit
 Assurez-vous que votre PATH système inclut la version CUDA correcte :

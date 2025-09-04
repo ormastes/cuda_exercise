@@ -202,17 +202,8 @@ Configurazioni di debug per applicazioni CUDA con percorsi debugger specifici pe
 
 Quando cambi il tuo ambiente di sviluppo o versione CUDA, aggiorna i seguenti percorsi:
 
-#### 1. Aggiorna debuggerPath in `.vscode/launch.json`
-Il percorso del debugger deve corrispondere alla versione e posizione della tua installazione CUDA:
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // Aggiorna a v13.0 o alla tua versione installata:
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-Per Linux/WSL:
+#### 1. Aggiorna debuggerPath in `.vscode/launch.json` (solo Linux)
+Per gli utenti Linux, il percorso del debugger deve corrispondere all'installazione CUDA:
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -220,6 +211,8 @@ Per Linux/WSL:
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Nota Windows:** Il debug CUDA con cuda-gdb non è supportato su Windows. Gli utenti Windows possono compilare ed eseguire applicazioni CUDA ma devono usare metodi di debug alternativi come printf debugging o NVIDIA Nsight Systems/Compute per il profiling.
 
 #### 2. Verifica Percorso CUDA Toolkit
 Assicurati che il PATH del tuo sistema includa la versione CUDA corretta:

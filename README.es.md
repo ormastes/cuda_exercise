@@ -161,6 +161,9 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### Depuración CUDA en VS Code
 
+**Nota:** La depuración CUDA actualmente solo está soportada en Linux. Los usuarios de Windows pueden compilar y ejecutar código CUDA pero no pueden usar cuda-gdb para depuración.
+
+#### Linux
 1. Establecer puntos de interrupción en su código CUDA (archivos .cu)
 2. Presionar `F5` o ir a Ejecutar y Depurar
 3. Seleccionar la configuración "CUDA C++: Launch (cuda-gdb)"
@@ -168,9 +171,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### Configuraciones de Depuración Disponibles
 
-- **CUDA C++: Launch (cuda-gdb)**: Depurar código CUDA con cuda-gdb
+- **CUDA C++: Launch (cuda-gdb)**: Depurar código CUDA con cuda-gdb (solo Linux)
 - Usa la selección de target actual de CMake
-- Soporta plataformas Linux y Windows
 
 ## Archivos de Configuración
 
@@ -202,17 +204,8 @@ Configuraciones de depuración para aplicaciones CUDA con rutas de depurador esp
 
 Al cambiar su entorno de desarrollo o versión de CUDA, actualice las siguientes rutas:
 
-#### 1. Actualizar debuggerPath en `.vscode/launch.json`
-La ruta del depurador debe coincidir con su versión de instalación CUDA y ubicación:
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // Actualizar a v13.0 o su versión instalada:
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-Para Linux/WSL:
+#### 1. Actualizar debuggerPath en `.vscode/launch.json` (solo Linux)
+Para usuarios de Linux, la ruta del depurador debe coincidir con su instalación CUDA:
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -220,6 +213,8 @@ Para Linux/WSL:
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Nota Windows:** La depuración CUDA con cuda-gdb no está soportada en Windows. Los usuarios de Windows pueden compilar y ejecutar aplicaciones CUDA pero deben usar métodos de depuración alternativos como depuración con printf o NVIDIA Nsight Systems/Compute para perfilado.
 
 #### 2. Verificar Ruta de CUDA Toolkit
 Asegúrese de que su PATH del sistema incluya la versión CUDA correcta:

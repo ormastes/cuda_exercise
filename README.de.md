@@ -161,6 +161,9 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### CUDA-Debugging in VS Code
 
+**Hinweis:** CUDA-Debugging wird derzeit nur unter Linux unterstützt. Windows-Benutzer können CUDA-Code kompilieren und ausführen, können jedoch cuda-gdb nicht zum Debuggen verwenden.
+
+#### Linux
 1. Breakpoints in Ihrem CUDA-Code (.cu-Dateien) setzen
 2. `F5` drücken oder zu Ausführen und Debuggen gehen
 3. "CUDA C++: Launch (cuda-gdb)" Konfiguration auswählen
@@ -168,9 +171,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### Verfügbare Debug-Konfigurationen
 
-- **CUDA C++: Launch (cuda-gdb)**: CUDA-Code mit cuda-gdb debuggen
+- **CUDA C++: Launch (cuda-gdb)**: CUDA-Code mit cuda-gdb debuggen (nur Linux)
 - Verwendet CMakes aktuelle Target-Auswahl
-- Unterstützt sowohl Linux- als auch Windows-Plattformen
 
 ## Konfigurationsdateien
 
@@ -202,17 +204,8 @@ Debug-Konfigurationen für CUDA-Anwendungen mit plattformspezifischen Debugger-P
 
 Beim Ändern Ihrer Entwicklungsumgebung oder CUDA-Version, aktualisieren Sie die folgenden Pfade:
 
-#### 1. debuggerPath in `.vscode/launch.json` aktualisieren
-Der Debugger-Pfad muss Ihrer CUDA-Installationsversion und dem Standort entsprechen:
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // Auf v13.0 oder Ihre installierte Version aktualisieren:
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-Für Linux/WSL:
+#### 1. debuggerPath in `.vscode/launch.json` aktualisieren (nur Linux)
+Für Linux-Benutzer muss der Debugger-Pfad Ihrer CUDA-Installation entsprechen:
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -220,6 +213,8 @@ Für Linux/WSL:
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Windows-Hinweis:** CUDA-Debugging mit cuda-gdb wird unter Windows nicht unterstützt. Windows-Benutzer können CUDA-Anwendungen kompilieren und ausführen, müssen jedoch alternative Debugging-Methoden wie printf-Debugging oder NVIDIA Nsight Systems/Compute für Profiling verwenden.
 
 #### 2. CUDA Toolkit-Pfad überprüfen
 Stellen Sie sicher, dass Ihr System-PATH die korrekte CUDA-Version enthält:

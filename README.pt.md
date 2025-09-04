@@ -161,6 +161,9 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### Debug CUDA no VS Code
 
+**Nota:** O debug CUDA atualmente é suportado apenas no Linux. Usuários Windows podem compilar e executar código CUDA mas não podem usar cuda-gdb para debug.
+
+#### Linux
 1. Defina breakpoints no seu código CUDA (arquivos .cu)
 2. Pressione `F5` ou vá para Executar e Debug
 3. Selecione a configuração "CUDA C++: Launch (cuda-gdb)"
@@ -168,9 +171,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### Configurações de Debug Disponíveis
 
-- **CUDA C++: Launch (cuda-gdb)**: Debug código CUDA com cuda-gdb
+- **CUDA C++: Launch (cuda-gdb)**: Debug código CUDA com cuda-gdb (somente Linux)
 - Usa a seleção de target atual do CMake
-- Suporta plataformas Linux e Windows
 
 ## Arquivos de Configuração
 
@@ -202,17 +204,8 @@ Configurações de debug para aplicações CUDA com caminhos de debugger especí
 
 Ao alterar seu ambiente de desenvolvimento ou versão CUDA, atualize os seguintes caminhos:
 
-#### 1. Atualize debuggerPath em `.vscode/launch.json`
-O caminho do debugger deve corresponder à versão e localização da sua instalação CUDA:
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // Atualize para v13.0 ou sua versão instalada:
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-Para Linux/WSL:
+#### 1. Atualize debuggerPath em `.vscode/launch.json` (somente Linux)
+Para usuários Linux, o caminho do debugger deve corresponder à sua instalação CUDA:
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -220,6 +213,8 @@ Para Linux/WSL:
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Nota Windows:** O debug CUDA com cuda-gdb não é suportado no Windows. Usuários Windows podem compilar e executar aplicações CUDA mas devem usar métodos de debug alternativos como printf debugging ou NVIDIA Nsight Systems/Compute para profiling.
 
 #### 2. Verifique o Caminho do CUDA Toolkit
 Certifique-se de que o PATH do seu sistema inclui a versão CUDA correta:

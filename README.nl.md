@@ -202,17 +202,8 @@ Debug configuraties voor CUDA applicaties met platform-specifieke debugger paden
 
 Bij het wijzigen van je ontwikkelomgeving of CUDA versie, werk de volgende paden bij:
 
-#### 1. Update debuggerPath in `.vscode/launch.json`
-Het debugger pad moet overeenkomen met je CUDA installatie versie en locatie:
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // Update naar v13.0 of je geïnstalleerde versie:
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-Voor Linux/WSL:
+#### 1. Update debuggerPath in `.vscode/launch.json` (alleen Linux)
+Voor Linux gebruikers moet het debugger pad overeenkomen met je CUDA installatie:
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -220,6 +211,8 @@ Voor Linux/WSL:
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Windows Opmerking:** CUDA debugging met cuda-gdb wordt niet ondersteund op Windows. Windows gebruikers kunnen CUDA applicaties compileren en uitvoeren maar moeten alternatieve debugging methoden gebruiken zoals printf debugging of NVIDIA Nsight Systems/Compute voor profiling.
 
 #### 2. Verifieer CUDA Toolkit Pad
 Zorg ervoor dat je systeem PATH de juiste CUDA versie bevat:

@@ -163,6 +163,9 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### VS Code에서 CUDA 디버깅
 
+**참고:** CUDA 디버깅은 현재 Linux에서만 지원됩니다. Windows 사용자는 CUDA 코드를 컴파일하고 실행할 수 있지만 디버깅을 위해 cuda-gdb를 사용할 수 없습니다.
+
+#### Linux
 1. CUDA 코드(.cu 파일)에 중단점 설정
 2. `F5`를 누르거나 실행 및 디버그로 이동
 3. "CUDA C++: Launch (cuda-gdb)" 구성 선택
@@ -170,9 +173,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### 사용 가능한 디버그 구성
 
-- **CUDA C++: Launch (cuda-gdb)**: cuda-gdb로 CUDA 코드 디버그
+- **CUDA C++: Launch (cuda-gdb)**: cuda-gdb로 CUDA 코드 디버그 (Linux 전용)
 - CMake의 현재 대상 선택 사용
-- Linux 및 Windows 플랫폼 모두 지원
 
 ## 구성 파일
 
@@ -205,17 +207,8 @@ Ninja와 Clang을 사용하도록 CMake 구성:
 
 개발 환경이나 CUDA 버전을 변경할 때 다음 경로를 업데이트하세요:
 
-#### 1. `.vscode/launch.json`에서 debuggerPath 업데이트
-디버거 경로는 CUDA 설치 버전 및 위치와 일치해야 합니다:
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // v13.0 또는 설치된 버전으로 업데이트:
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-Linux/WSL의 경우:
+#### 1. `.vscode/launch.json`에서 debuggerPath 업데이트 (Linux 전용)
+Linux 사용자의 경우, 디버거 경로가 CUDA 설치와 일치해야 합니다:
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -223,6 +216,8 @@ Linux/WSL의 경우:
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Windows 참고:** cuda-gdb를 사용한 CUDA 디버깅은 Windows에서 지원되지 않습니다. Windows 사용자는 CUDA 애플리케이션을 컴파일하고 실행할 수 있지만, printf 디버깅 또는 프로파일링을 위한 NVIDIA Nsight Systems/Compute와 같은 대체 디버깅 방법을 사용해야 합니다.
 
 #### 2. CUDA Toolkit 경로 확인
 시스템 PATH에 올바른 CUDA 버전이 포함되어 있는지 확인하세요:

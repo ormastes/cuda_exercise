@@ -161,6 +161,9 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### VS CodeでのCUDAデバッグ
 
+**注意:** CUDAデバッグは現在Linuxでのみサポートされています。Windowsユーザーは、CUDAコードをコンパイルして実行することはできますが、デバッグにcuda-gdbを使用することはできません。
+
+#### Linux
 1. CUDAコード（.cuファイル）にブレークポイントを設定
 2. `F5`を押すか、実行とデバッグに移動
 3. 「CUDA C++: Launch (cuda-gdb)」構成を選択
@@ -168,9 +171,8 @@ code --install-extension streetsidesoftware.code-spell-checker
 
 ### 利用可能なデバッグ構成
 
-- **CUDA C++: Launch (cuda-gdb)**: cuda-gdbでCUDAコードをデバッグ
+- **CUDA C++: Launch (cuda-gdb)**: cuda-gdbでCUDAコードをデバッグ（Linuxのみ）
 - CMakeの現在のターゲット選択を使用
-- LinuxとWindowsプラットフォームの両方をサポート
 
 ## 構成ファイル
 
@@ -202,18 +204,9 @@ NinjaとClangを使用するようCMakeを構成:
 
 開発環境やCUDAバージョンを変更する際は、以下のパスを更新してください:
 
-#### 1. `.vscode/launch.json`のdebuggerPathを更新
+#### 1. `.vscode/launch.json`のdebuggerPathを更新（Linuxのみ）
 
-デバッガーパスはCUDAインストールバージョンと場所に一致する必要があります:
-```json
-"windows": {
-    "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin/cuda-gdb.exe"
-    // v13.0またはインストールしたバージョンに更新:
-    // "debuggerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/cuda-gdb.exe"
-}
-```
-
-Linux/WSLの場合:
+Linuxユーザーの場合、デバッガーパスがCUDAインストールと一致する必要があります:
 ```json
 "linux": {
     "debuggerPath": "/usr/bin/cuda-gdb"
@@ -221,6 +214,8 @@ Linux/WSLの場合:
     // "debuggerPath": "/usr/local/cuda-13.0/bin/cuda-gdb"
 }
 ```
+
+**Windows注意:** cuda-gdbを使用したCUDAデバッグはWindowsではサポートされていません。WindowsユーザーはCUDAアプリケーションをコンパイルして実行できますが、printfデバッグやプロファイリング用のNVIDIA Nsight Systems/Computeなどの代替デバッグ方法を使用する必要があります。
 
 #### 2. CUDA Toolkitパスを確認
 

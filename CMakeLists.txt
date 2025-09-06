@@ -48,3 +48,4 @@ endif()
 
 add_subdirectory(00.demo)
 add_subdirectory(00.demo_lib)
+add_subdirectory(10.cuda_basic)

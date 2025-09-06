@@ -1,0 +1,122 @@
+reference > https://forums.developer.nvidia.com/t/how-to-change-the-thread-focus-using-the-visual-studio-code-extension/288639/2
+
+
+
+
+(cuda-gdb) info cuda kernels
+  Kernel Parent Dev Grid Status                 SMs Mask   GridDim  BlockDim Invocation                                                                                 
+*      0      -   0    1 Active 0x0fffffffffffffffffffff (64,64,1) (16,16,1) vectorAdd2D(A=0x7fffcfa00000, B=0x7fffd2a00000, C=0x7fffd2e00000, width=1024, height=1024) 
+
+
+(cuda-gdb) info cuda blocks                                                                                                                                                                                                                                    
+  BlockIdx To BlockIdx Count   State 
+Kernel 0
+*  (0,0,0)    (55,7,0)   504 running 
+
+
+(cuda-gdb) info cuda threads
+  BlockIdx ThreadIdx To BlockIdx ThreadIdx Count                 PC                                                                                      Filename  Line 
+Kernel 0
+*  (0,0,0)   (0,0,0)     (0,0,0) (15,15,0)   256 0x00007fffd527e220 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu     6 
+   (1,0,0)   (0,0,0)     (1,0,0)  (15,1,0)    32 0x00007fffd527d570 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu    15 
+   (1,0,0)   (0,2,0)     (2,0,0)  (15,5,0)   320 0x00007fffd527e220 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu     6 
+   (2,0,0)   (0,6,0)     (2,0,0)  (15,7,0)    32 0x00007fffd527d570 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu    15 
+   (2,0,0)   (0,8,0)     (2,0,0) (15,15,0)   128 0x00007fffd527e220 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu     6 
+   (3,0,0)   (0,0,0)     (3,0,0)  (15,3,0)    64 0x00007fffd527d570 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu    15 
+   (3,0,0)   (0,4,0)     (3,0,0)  (15,5,0)    32 0x00007fffd527e220 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu     6 
+   (3,0,0)   (0,6,0)     (3,0,0)  (15,7,0)    32 0x00007fffd527d570 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu    15 
+   (3,0,0)   (0,8,0)     (3,0,0) (15,11,0)    64 0x00007fffd527e220 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu     6 
+   (3,0,0)  (0,12,0)     (3,0,0) (15,13,0)    32 0x00007fffd527d570 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu    15 
+   (3,0,0)  (0,14,0)     (5,0,0)  (15,3,0)   352 0x00007fffd527e220 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu     6 
+   (5,0,0)   (0,4,0)     (5,0,0)  (15,5,0)    32 0x00007fffd527d570 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu    15 
+   (5,0,0)   (0,6,0)     (8,0,0) (15,15,0)   928 0x00007fffd527e220 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu     6 
+   (9,0,0)   (0,0,0)     (9,0,0)  (15,1,0)    32 0x00007fffd527d570 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu    15 
+   (9,0,0)   (0,2,0)    (10,0,0) (15,15,0)   480 0x00007fffd527e220 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu     6 
+  (11,0,0)   (0,0,0)    (11,0,0)  (15,1,0)    32 0x00007fffd527d570 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu    15 
+  (11,0,0)   (0,2,0)    (12,0,0)  (15,1,0)   256 0x00007fffd527e220 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu     6 
+  (12,0,0)   (0,2,0)    (12,0,0)  (15,3,0)    32 0x00007fffd527e200 /home/ormastes/dev/pub/cuda_exercise/10.cuda_basic/12.Your First CUDA Kernel/vector_add_2d.cu     5 
+--Type <RET> for more, q to quit, c to continue without paging--                   
+
+(cuda-gdb) info threads
+  Id   Target Id                                            Frame 
+  1    Thread 0x7ffff7bcf000 (LWP 759870) "12_YourFirstCUD" 0x00007ffff0e61274 in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+  2    Thread 0x7ffff09ff000 (LWP 759874) "cuda00001400006" 0x00007ffff751b4cd in poll () from /lib/x86_64-linux-gnu/libc.so.6
+  3    Thread 0x7fffef5ff000 (LWP 759875) "12_YourFirstCUD" 0x00007ffff752a042 in epoll_wait () from /lib/x86_64-linux-gnu/libc.so.6
+  4    Thread 0x7fffddfff000 (LWP 759929) "12_YourFirstCUD" 0x00007ffff7498d71 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+  5    Thread 0x7fffdd7fe000 (LWP 759930) "cuda-EvtHandlr"  0x00007ffff751b4cd in poll () from /lib/x86_64-linux-gnu/libc.so.6
+  
+   # Print thread indices
+  (cuda-gdb) print threadIdx
+  (cuda-gdb) print blockIdx
+  (cuda-gdb) print blockDim
+why there is not threadDim ?
+
+
+
+
+
+
+  Key CUDA-GDB Commands for Thread Control:
+
+  # Focus on specific block and thread
+  cuda kernel <kernel_id> block <bx,by,bz> thread <tx,ty,tz>
+
+  # Examples:
+  cuda kernel 0 block 0,0,0 thread 0,0,0   # Focus on first thread of first block
+  cuda kernel 0 block 1,0,0 thread 15,0,0  # Block (1,0,0), Thread (15,0,0)
+
+  # Show current focus
+  cuda kernel block thread
+
+  # List all kernels
+  info cuda kernels
+
+  # Show all blocks in current kernel
+  info cuda blocks
+
+  # Show all threads in current block  
+  info cuda threads
+
+  # Show warps
+  info cuda warps
+
+  # Switch to specific warp
+  cuda warp <lane_mask>
+
+  # Show current SM and warp
+  info cuda sm
+  info cuda warp
+
+  Practical Debugging Example:
+
+  (cuda-gdb) break vectorAdd2D        # Set breakpoint at kernel
+  (cuda-gdb) run                      # Run program
+  (cuda-gdb) info cuda kernels        # List running kernels
+  (cuda-gdb) info cuda blocks         # Show active blocks
+
+  # Focus on specific thread
+  (cuda-gdb) cuda kernel 0 block 2,1,0 thread 5,3,0
+
+  # Print thread indices
+  (cuda-gdb) print threadIdx
+  (cuda-gdb) print blockIdx
+  (cuda-gdb) print blockDim
+
+  # Step through only current thread
+  (cuda-gdb) set cuda single-stepping on
+  (cuda-gdb) next
+
+  # Print variables for current thread
+  (cuda-gdb) print x
+  (cuda-gdb) print i
+
+  Filtering/Limiting Threads:
+
+  # Set conditional breakpoint for specific thread
+  (cuda-gdb) break vectorAdd2D if blockIdx.x==0 && threadIdx.x==0
+
+  # Break only when accessing specific memory index
+  (cuda-gdb) break vectorAdd2D if i==100
+
+  # Set scheduler to single-step one warp at a time
+  (cuda-gdb) set cuda scheduler single-stepping on

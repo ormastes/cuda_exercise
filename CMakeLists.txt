@@ -46,5 +46,5 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     )
 endif()
 
-add_subdirectory(demo)
-add_subdirectory(demo_lib)
+add_subdirectory(00.demo)
+add_subdirectory(00.demo_lib)

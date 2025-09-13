@@ -5,6 +5,17 @@
     ],
     "cmake.buildDirectory": "${workspaceFolder}/build",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+        // Microsoft C/C++ Extension settings
+    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
+    "C_Cpp.codeAnalysis.clangTidy.useBuildPath": true,
+    "C_Cpp.codeAnalysis.clangTidy.path": "clang-tidy",
+    "C_Cpp.codeAnalysis.clangTidy.args": [
+        "-p",
+        "${command:cmake.buildDirectory}"
+    ],
+    // Let .clang-tidy file handle the checks configuration
+    "C_Cpp.codeAnalysis.runAutomatically": true,
+    "C_Cpp.configurationWarnings": "disabled",
     "files.associations": {
         "*.cu": "cuda-cpp",
         "*.cuh": "cuda-cpp"

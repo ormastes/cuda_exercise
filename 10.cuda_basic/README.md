@@ -26,18 +26,42 @@ Build a conceptual base before writing code. See [11.Foundations/README.md](11.F
 
 ## ⚙️ Part 2: Your First CUDA Kernel
 
-**Goal**: Introduce kernel syntax, compilation, and launch.
+**Goal**: Introduce kernel syntax, compilation, launch, and VSCode setup. See [12.Your First CUDA Kernel/README.md](12.Your%20First%20CUDA%20Kernel/README.md) for detailed content.
 
 - **2.1** Host vs Device Code Separation
-- **2.2** `__global__` Function
-- **2.3** Launch Configuration
-- **2.4** Basic Vector Addition
+- **2.2** `__global__`, `__device__`, and `dim3` API
+- **2.3** Launch Configuration with `dim3`
+- **2.4** CUDA Memory Management APIs
+- **2.5** Vector Add Example
+- **2.6** VSCode Preset Selection & Build Setup
+- **2.7** Configuration Files Explained
+- **2.8** API Recap
+- **2.9** Summary
 
-📄 *Example Code:* `vector_add.cu`
+📄 *Example Code:* `vector_add_2d.cu`
 
 ---
 
-## 🧵 Part 3: Thread Hierarchy in Practice
+## 🐞 Part 3: Debugging CUDA in VSCode
+
+**Goal**: Master GPU debugging techniques using NVIDIA Nsight and cuda-gdb in VSCode. See [13.Debugging CUDA in VSCode/README.md](13.Debugging%20CUDA%20in%20VSCode/README.md) for detailed content.
+
+- **3.1** Overview of CUDA Debugging
+- **3.2** VSCode Debug Configuration
+- **3.3** Debugging Workflow
+- **3.4** Debug Features and Commands
+- **3.5** Thread and Block Navigation
+- **3.6** Common Debugging Scenarios
+- **3.7** Debug Output and Logging
+- **3.8** Performance Debugging
+- **3.9** Troubleshooting Common Issues
+- **3.10** Advanced Debugging Tips
+- **3.11** Debug Commands Reference
+- **3.12** Summary
+
+---
+
+## 🧵 Part 4: Thread Hierarchy in Practice
 
 **Goal**: Demonstrate how threads, blocks, and grids affect execution.
 

@@ -8,6 +8,7 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
+                "CMAKE_CUDA_COMPILER": "nvcc",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
@@ -18,16 +19,11 @@
             "description": "Default build using Ninja and Clang for C++",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build-clang",
-            "environment": {
-                
-            
-            },
+            "environment": {},
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
                 "CMAKE_CUDA_COMPILER": "nvcc",
-                "CMAKE_CUDA_HOST_COMPILER": "clang++",
-                "CMAKE_CUDA_FLAGS": "-ccbin=clang++", 
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
@@ -39,6 +35,7 @@
             "generator": "Visual Studio 17 2022",
             "binaryDir": "${sourceDir}/build-msvc",
             "cacheVariables": {
+                "CMAKE_CUDA_COMPILER": "nvcc",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             },
             "architecture": {
@@ -53,6 +50,7 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build-release",
             "cacheVariables": {
+                "CMAKE_CUDA_COMPILER": "nvcc",
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }

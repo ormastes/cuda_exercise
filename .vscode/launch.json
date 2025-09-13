@@ -17,7 +17,7 @@
       "onAPIError": "stop"
     },
     {
-      // GPU kernel debugging on Linux/WSL via Nsight VS Code (cuda-gdb)
+      // GPU kernel Unit Test debugging on Linux/WSL via Nsight VS Code (cuda-gdb)
       "name": "CUDA C++: CTest Launch (cuda-gdb)",
       "type": "cuda-gdb",
       "request": "launch",

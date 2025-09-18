@@ -14,19 +14,20 @@ find_package(CUDAToolkit REQUIRED)
 # Testing support
 enable_testing()
 
-# FetchContent for downloading Catch2
+# FetchContent for downloading Google Test
 include(FetchContent)
 FetchContent_Declare(
-    Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.5.2
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.14.0
 )
-FetchContent_MakeAvailable(Catch2)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
-# Include Catch2's CMake utilities
-list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+# Include Google Test's CMake utilities
 include(CTest)
-include(Catch)
+include(GoogleTest)
 
 # Global settings
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)

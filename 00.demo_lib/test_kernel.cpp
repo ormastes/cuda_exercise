@@ -1,45 +1,41 @@
-#include <catch2/catch_test_macros.hpp>
+#include <gtest/gtest.h>
 #include <cuda_runtime.h>
 #include "kernel.h"
 #include <iostream>
 #include <sstream>
 #include <cstdio>
 
-TEST_CASE("Kernel launch test", "[cuda]") {
-    SECTION("launchKernel executes without errors") {
+TEST(KernelLaunchTest, LaunchKernelExecutesWithoutErrors) {
         cudaError_t error = cudaGetLastError();
-        REQUIRE(error == cudaSuccess);
+        EXPECT_EQ(error, cudaSuccess);
         
         launchKernel();
         
         error = cudaDeviceSynchronize();
-        REQUIRE(error == cudaSuccess);
+        EXPECT_EQ(error, cudaSuccess);
         
         error = cudaGetLastError();
-        REQUIRE(error == cudaSuccess);
-    }
-    
-    SECTION("CUDA device is available") {
-        int deviceCount = 0;
-        cudaError_t error = cudaGetDeviceCount(&deviceCount);
-        REQUIRE(error == cudaSuccess);
-        REQUIRE(deviceCount > 0);
-    }
-    
-    SECTION("CUDA device properties can be queried") {
-        cudaDeviceProp prop;
-        cudaError_t error = cudaGetDeviceProperties(&prop, 0);
-        REQUIRE(error == cudaSuccess);
-        REQUIRE(prop.major > 0);
-    }
+        EXPECT_EQ(error, cudaSuccess);
 }
 
-TEST_CASE("Multiple kernel launches", "[cuda]") {
-    SECTION("Multiple launches work correctly") {
+TEST(KernelLaunchTest, CudaDeviceIsAvailable) {
+        int deviceCount = 0;
+        cudaError_t error = cudaGetDeviceCount(&deviceCount);
+        EXPECT_EQ(error, cudaSuccess);
+        EXPECT_GT(deviceCount, 0);
+}
+
+TEST(KernelLaunchTest, CudaDevicePropertiesCanBeQueried) {
+        cudaDeviceProp prop;
+        cudaError_t error = cudaGetDeviceProperties(&prop, 0);
+        EXPECT_EQ(error, cudaSuccess);
+        EXPECT_GT(prop.major, 0);
+}
+
+TEST(MultipleKernelLaunches, MultipleLaunchesWorkCorrectly) {
         for (int i = 0; i < 5; ++i) {
             launchKernel();
             cudaError_t error = cudaDeviceSynchronize();
-            REQUIRE(error == cudaSuccess);
+            EXPECT_EQ(error, cudaSuccess);
         }
-    }
 }

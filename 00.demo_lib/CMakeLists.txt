@@ -9,10 +9,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_lib)
 
 # Tests
 add_executable(test_${PROJECT_NAME} test_kernel.cpp)
-target_link_libraries(test_${PROJECT_NAME} PRIVATE 
+target_link_libraries(test_${PROJECT_NAME} PRIVATE
     ${PROJECT_NAME}_lib
-    Catch2::Catch2WithMain
+    GTest::gtest_main
 )
 
 # Register test with CTest
-catch_discover_tests(test_${PROJECT_NAME})
+include(GoogleTest)
+gtest_discover_tests(test_${PROJECT_NAME})

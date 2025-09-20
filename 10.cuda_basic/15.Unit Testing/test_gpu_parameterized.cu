@@ -1,5 +1,5 @@
 // Test sample for GPU parameterized tests
-#include "../00.lib/gpu_gtest.h"
+#include "../../00.lib/gpu_gtest.h"
 #include <vector>
 #include <iostream>
 

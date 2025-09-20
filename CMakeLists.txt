@@ -34,7 +34,7 @@ set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Compiler flags for different build types
+# Compiler flags for different build types3
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(
         "$<$<COMPILE_LANGUAGE:CUDA>:-g;-G>"

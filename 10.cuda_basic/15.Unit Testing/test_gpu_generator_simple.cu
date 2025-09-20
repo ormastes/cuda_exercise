@@ -1,5 +1,5 @@
 // Simplified test for GPU generator functionality
-#include "../00.lib/gpu_gtest.h"
+#include "../../00.lib/gpu_gtest.h"
 #include <iostream>
 
 // Test the basic GPU test functionality first

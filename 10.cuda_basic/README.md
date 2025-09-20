@@ -59,101 +59,156 @@ Build a conceptual base before writing code. See [11.Foundations/README.md](11.F
 - **3.11** Debug Commands Reference
 - **3.12** Summary
 
+## 🔍 Part 4: Code Inspection and Profiling
+
+**Goal**: Analyze and optimize CUDA code performance using NVIDIA profiling tools. See [14.Code Inspection and Profiling/README.md](14.Code%20Inspection%20and%20Profiling/README.md) for detailed content.
+
+- **4.1** Introduction to CUDA Profiling
+- **4.2** Using Nsight Compute
+- **4.3** Using Nsight Systems
+- **4.4** Kernel Performance Metrics
+- **4.5** Memory Access Patterns
+- **4.6** Occupancy Analysis
+- **4.7** Identifying Bottlenecks
+- **4.8** Optimization Strategies
+- **4.9** Profiling Best Practices
+- **4.10** Summary
+
+📄 *Example Code:* Various optimization examples
+
 ---
 
-## 🧵 Part 4: Thread Hierarchy in Practice
+## 🧪 Part 5: Unit Testing CUDA Code
 
-**Goal**: Demonstrate how threads, blocks, and grids affect execution.
+**Goal**: Implement comprehensive testing for CUDA kernels using Google Test framework. See [15.Unit Testing/README.md](15.Unit%20Testing/README.md) for detailed content.
 
-- **3.1** `blockDim`, `threadIdx`, `gridDim`, `blockIdx`
-- **3.2** 1D / 2D / 3D Kernels
-- **3.3** Thread Indexing in Image Processing
+- **5.1** Introduction to GPU Testing
+- **5.2** Google Test Integration
+- **5.3** Basic GPU Test Macros
+- **5.4** Parameterized GPU Tests
+- **5.5** Generator-Based Testing
+- **5.6** Testing Best Practices
+- **5.7** Debugging Failed Tests
+- **5.8** Performance Testing
+- **5.9** Test Coverage Analysis
+- **5.10** Summary
+
+📄 *Example Code:* `device_test.cu`, `host_test.cu`, test samples
+
+---
+
+## 🛡️ Part 6: Error Handling and Debugging
+
+**Goal**: Build robust CUDA applications with comprehensive error handling. See [16.Error Handling and Debugging/README.md](16.Error%20Handling%20and%20Debugging/README.md) for detailed content.
+
+- **6.1** CUDA Error Types and Codes
+- **6.2** Error Checking Macros
+- **6.3** Synchronous vs Asynchronous Errors
+- **6.4** Debugging Memory Errors
+- **6.5** Race Condition Detection
+- **6.6** Deadlock Prevention
+- **6.7** Error Recovery Strategies
+- **6.8** Logging and Diagnostics
+- **6.9** Production Error Handling
+- **6.10** Summary
+
+📄 *Example Code:* Error handling utilities and examples
+
+---
+
+# 🚀 Planned Future Content
+
+> **Note**: The following sections are planned for future development and will be added as the tutorial expands.
+
+---
+
+## 🧠 Part 7: Memory Hierarchy
+
+what memory bandwidth, size, latency, usage. bank conflicts, coalescing, etc.
+
+---
+
+## 🧵 Part 8: Thread Hierarchy in Practice
+
+**Goal**: Demonstrate thread, warp, block, SM and grid concepts with 2D image processing.
+
+- **8.1** `blockDim`, `threadIdx`, `gridDim`, `blockIdx`
+- **8.2** 1D / 2D / 3D Kernels
+- **8.3** Thread Indexing in Image Processing
 
 📄 *Example Code:* `image_negation_2D.cu`
 
 ---
 
-## 🧠 Part 4: Shared Memory & Synchronization
-
-**Goal**: Leverage shared memory for performance.
-
-- **4.1** Shared Memory Usage
-- **4.2** Bank Conflicts & Optimizations
-- **4.3** `__syncthreads()` and Race Conditions
-
-📄 *Example Code:* `matrix_mul_shared.cu`
-
----
-
-## 🗃️ Part 5: CUDA Memory API
+## 🗃️ Part 9: CUDA Basic Memory API
 
 **Goal**: Use `cudaMalloc`, `cudaMemcpy`, `cudaFree`.
 
-- **5.1** Allocating Memory on Device
-- **5.2** Copying Memory Between Host & Device
-- **5.3** Pageable vs Pinned Memory
+- **9.1** Allocating Memory on Device
+- **9.2** Copying Memory Between Host & Device
+- **9.3** Pageable vs Pinned Memory
 
 📄 *Example Code:* `cuda_memory_api_demo.cu`
 
 ---
 
-## 🧮 Part 6: Streams and Asynchronous Execution
+
+## 🧠 Part 10: Memory Lock, async and Synchronization
+
+all cuda lock, async with CUB and synchronization aspects. 
+
+
+## 🧮 Part 11: Streams and Asynchronous Execution
 
 **Goal**: Introduce `cudaStream_t` and overlapped copy/compute.
 
-- **6.1** Using Streams to Avoid Serialization
-- **6.2** Async Memory Copy
-- **6.3** Measuring Performance with Events
+- **11.1** Using Streams to Avoid Serialization
+- **11.2** Async Memory Copy
+- **11.3** Measuring Performance with Events
 
 📄 *Example Code:* `stream_overlap_example.cu`
 
 ---
 
-## 🧪 Part 7: Error Handling and Debugging
 
-**Goal**: Improve reliability of CUDA apps.
 
-- **7.1** `cudaError_t` and Error Check Macros
-- **7.2** Debugging Tools: `cuda-gdb`, Nsight
-- **7.3** Detecting Race Conditions
-
-📄 *Example Code:*  
-- `error_checking_macros.h`  
-- `race_condition_demo.cu`
-
----
-
-## 📊 Part 8: Unified Memory and `cudaMallocManaged`
+## 📊 Part 12: Unified Memory and `cudaMallocManaged`
 
 **Goal**: Introduce Unified Memory for simplified data access.
 
-- **8.1** Pros and Cons of Unified Memory
-- **8.2** Using `cudaMallocManaged`
-- **8.3** Memory Migration and Prefetching
+- **12.1** Pros and Cons of Unified Memory
+- **12.2** Using `cudaMallocManaged`
+- **12.3** Memory Migration and Prefetching
 
 📄 *Example Code:* `unified_memory_vector_add.cu`
 
 ---
 
-## 🖴 Part 9: CUDA and NVMe (cuFile & GDS Intro)
+## 📊 Part 13: Pin host/CUDA memory
+
+
+
+---
+
+## 🖴 Part 14: CUDA and NVMe (cuFile & GDS Intro)
 
 **Goal**: Bridge to high-performance I/O with GPU & storage.
 
-- **9.1** Intro to GPUDirect Storage
-- **9.2** Overview of `cuFile` API
-- **9.3** Example: Reading Data from SSD to GPU Memory
+- **14.1** Intro to GPUDirect Storage
+- **14.2** Overview of `cuFile` API
+- **14.3** Example: Reading Data from SSD to GPU Memory
 
 📄 *Example Code:* `cufile_read_example.cu`
 
 ---
 
-## 🧩 Part 10: Using CUDA Libraries (cuBLAS, cuFFT, etc.)
+## 🧩 Part 15: Using CUDA Libraries (cuBLAS, cuFFT, etc.)
 
 **Goal**: Leverage NVIDIA's optimized libraries.
 
-- **10.1** cuBLAS: Matrix Multiplication
-- **10.2** cuFFT: Signal Transformation
-- **10.3** cuRAND: Random Number Generation
+- **15.1** cuBLAS: Matrix Multiplication
+- **15.2** cuFFT: Signal Transformation
+- **15.3** cuRAND: Random Number Generation
 
 📄 *Example Code:*  
 - `cublas_gemm.cu`  

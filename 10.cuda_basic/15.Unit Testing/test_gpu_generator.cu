@@ -1,5 +1,5 @@
 // Test sample for GPU GENERATOR tests
-#include "../00.lib/gpu_gtest.h"
+#include "../../00.lib/gpu_gtest.h"
 #include <iostream>
 
 // Base test class (optional, can be used for shared setup)

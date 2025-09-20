@@ -613,6 +613,12 @@ inline ::testing::AssertionResult _LaunchGpuGeneratorTest(
     } \
     void TestClassName##__##TestName##_Test::RunGpuTest() { \
         auto* _test_instance = this; \
+        if (_test_instance->on_counting) { \
+            /* Skip GPU execution during counting phase */ \
+            return; \
+        } \
+        /* Set the generator for this test */ \
+        _test_instance->current_generator = __gtest_generator__get_generator_##TestClassName##TestName(); \
         auto cfg = this->launch_cfg(); \
         ASSERT_TRUE(LaunchGpuGeneratorTest( \
             TestClassName##__##TestName##_kernel, _test_instance, cfg)); \
@@ -648,6 +654,12 @@ inline ::testing::AssertionResult _LaunchGpuGeneratorTest(
     } \
     void TestClassName##__##TestName##_Test::RunGpuTest() { \
         auto* _test_instance = this; \
+        if (_test_instance->on_counting) { \
+            /* Skip GPU execution during counting phase */ \
+            return; \
+        } \
+        /* Set the generator for this test */ \
+        _test_instance->current_generator = __gtest_generator__get_generator_##TestClassName##TestName(); \
         auto cfg = this->launch_cfg(); \
         ASSERT_TRUE(LaunchGpuGeneratorTest( \
             TestClassName##__##TestName##_kernel, _test_instance, cfg)); \

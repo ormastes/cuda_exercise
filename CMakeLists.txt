@@ -1,7 +1,13 @@
-cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 
-set(CMAKE_CUDA_ARCHITECTURES native) # 75(Titan RTX), 86 (A6000), native, all-major
+# Set CUDA toolkit root
+set(CMAKE_CUDA_COMPILER /usr/local/cuda-13.0/bin/nvcc)
+set(CUDAToolkit_ROOT /usr/local/cuda-13.0)
 
+# Set CUDA architectures before project
+set(CMAKE_CUDA_ARCHITECTURES 75;80;86)
+
+# Enable CUDA language
 project(cuda_project LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -34,7 +40,7 @@ set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Compiler flags for different build types3
+# Compiler flags for different build types
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(
         "$<$<COMPILE_LANGUAGE:CUDA>:-g;-G>"

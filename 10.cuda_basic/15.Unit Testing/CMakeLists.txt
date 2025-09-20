@@ -53,4 +53,6 @@ set_target_properties(test_gpu_generator PROPERTIES
 # Add parameterized tests
 gtest_discover_tests(test_gpu_parameterized)
 gtest_discover_tests(test_gpu_generator_simple)
-gtest_discover_tests(test_gpu_generator)
+# Disable test discovery for test_gpu_generator due to runtime issues during build
+# gtest_discover_tests(test_gpu_generator)
+add_test(NAME test_gpu_generator COMMAND test_gpu_generator)

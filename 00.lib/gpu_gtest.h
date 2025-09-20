@@ -565,7 +565,7 @@ inline DynamicRangeGenerator* CreateGenerator(const std::string& name) {
 } // namespace gpu_generator
 
 // GPU-specific generator macros
-#define GPU_GENERATOR(...) ::gpu_generator::GetGeneratorValue<::gpu_generator::make_unique_id(__FILE__, __LINE__)>({__VA_ARGS__}, this)
+#define GPU_GENERATOR(...) ::gpu_generator::GetGeneratorValue<::gpu_generator::make_unique_id(__FILE__, __LINE__)>({__VA_ARGS__}, _test_instance)
 
 #define GPU_USE_GENERATOR(...) \
   do { \
@@ -580,8 +580,8 @@ inline DynamicRangeGenerator* CreateGenerator(const std::string& name) {
         if (it != ::gpu_generator::g_colsizes_map.end() && !it->second.empty()) { \
           int max_size = 0; \
           for (int s : it->second) max_size = std::max(max_size, s); \
-          if (GetParam() >= max_size) { \
-            GTEST_SKIP() << "Skipping iteration " << GetParam() << " for ALIGNED mode"; \
+          if (_test_instance->GetParam() >= max_size) { \
+            GTEST_SKIP() << "Skipping iteration " << _test_instance->GetParam() << " for ALIGNED mode"; \
           } \
         } \
       } \
@@ -590,7 +590,7 @@ inline DynamicRangeGenerator* CreateGenerator(const std::string& name) {
     ::gpu_generator::tl_col_ix = 0; \
     ::gpu_generator::current_divider = 1; \
   } while(0); \
-  if (::gpu_generator::IsCountingMode(*this)) return;
+  if (::gpu_generator::IsCountingMode(*_test_instance)) return;
 
 // Helper for launching generator-based GPU tests
 template<typename TestInstance>
@@ -652,6 +652,7 @@ inline ::testing::AssertionResult LaunchGpuGeneratorTest(
         RunGpuTest(); \
     } \
     void TestClassName##__##TestName##_Test::RunGpuTest() { \
+        auto* _test_instance = this; \
         GPU_USE_GENERATOR(); \
         auto cfg = this->launch_cfg(); \
         ASSERT_TRUE(LaunchGpuGeneratorTest( \
@@ -687,6 +688,7 @@ inline ::testing::AssertionResult LaunchGpuGeneratorTest(
         RunGpuTest(); \
     } \
     void TestClassName##__##TestName##_Test::RunGpuTest() { \
+        auto* _test_instance = this; \
         GPU_USE_GENERATOR(); \
         auto cfg = this->launch_cfg(); \
         ASSERT_TRUE(LaunchGpuGeneratorTest( \

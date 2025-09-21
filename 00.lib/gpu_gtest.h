@@ -97,9 +97,11 @@ struct GpuTestResult {
   char first_msg[256];
 };
 
-__device__ inline void __gpu_record_failure(GpuTestResult* r,
+__host__ __device__ inline void __gpu_record_failure(GpuTestResult* r,
                                             const char* file, int line,
                                             const char* msg) {
+#ifdef __CUDA_ARCH__
+  // Device code path
   if (atomicCAS(&r->failed, 0, 1) == 0) {
     r->first_line = line;
     int i=0; while (file[i] && i < (int)sizeof(r->first_file)-1) { r->first_file[i]=file[i]; ++i; }
@@ -109,6 +111,18 @@ __device__ inline void __gpu_record_failure(GpuTestResult* r,
   }
   atomicAdd((unsigned long long*)&r->failures_count, 1ULL);
   printf("[GPU-EXPECT] %s:%d %s\n", file, line, msg);
+#else
+  // Host code path for counting phase
+  if (r->failed == 0) {
+    r->failed = 1;
+    r->first_line = line;
+    int i=0; while (file[i] && i < (int)sizeof(r->first_file)-1) { r->first_file[i]=file[i]; ++i; }
+    r->first_file[i]='\0';
+    int j=0; while (msg[j]  && j < (int)sizeof(r->first_msg)-1)  { r->first_msg[j]=msg[j];  ++j; }
+    r->first_msg[j]='\0';
+  }
+  r->failures_count++;
+#endif
 }
 
 //==================================================//
@@ -394,6 +408,8 @@ public:
 
     virtual void TestBody() = 0;
 
+    virtual void RunCpuTest() = 0;
+
     // GPU-specific: launch configuration
     virtual GpuLaunchCfg launch_cfg() const {
         return GpuLaunchCfg{dim3(1), dim3(1), 0, 0};
@@ -404,29 +420,19 @@ public:
 static std::map<std::string, cuda::std::array<int, GpuTestWithGenerator::MAX_GENERATORS>> g_colsizes_map;
 static std::map<std::string, SamplingMode> g_test_modes;
 
+
 // Dynamic range generator for parameterized tests
 class DynamicRangeGenerator : public testing::internal::ParamGeneratorInterface<int> {
 public:
     const std::string key;
     mutable int start = 0;
-    mutable int end = 1;
+    mutable int end = 0;
     GpuTestWithGenerator* test_instance;
 
     explicit DynamicRangeGenerator(const std::string& k, GpuTestWithGenerator* test_case)
         : key(k), test_instance(test_case) {
         g_range_map[key] = this;
-
-        if (test_instance) {
-            test_instance->on_counting = true;
-            test_instance->current_count = 1;
-            test_instance->current_divider = 1;
-            test_instance->col_sizes_count = 0;
-            test_instance->col_ix = 0;
-            test_instance->mode = SamplingMode::FULL;
-            test_instance->current_generator = this;
-            test_instance->TestBody();
-
-        }
+        test_instance->current_generator = this;
     }
 
     testing::internal::ParamIteratorInterface<int>* Begin() const override {
@@ -434,6 +440,10 @@ public:
     }
 
     testing::internal::ParamIteratorInterface<int>* End() const override {
+      if (end == 0) {
+                           test_instance->RunCpuTest();
+            end = test_instance->current_count;
+      }
         return new DynIterator(end, this, true);
     }
 
@@ -485,9 +495,13 @@ __host__ __device__ constexpr size_t make_unique_id(const char* file, int line) 
 // Get generator value based on current iteration
 template <size_t UniqueId, typename T>
 __host__ __device__ inline const T& GetGeneratorValue(std::initializer_list<T> values, gpu_generator::GpuTestWithGenerator* test_instance) {
+      assert(values.size() > 0 && "Generator values cannot be empty");
     if (test_instance->on_counting) {
         test_instance->col_sizes[test_instance->col_sizes_count] = (int)values.size();
         test_instance->col_sizes_count++;
+        // Debug print - iterate through initializer_list using range-based for
+        // for (auto v : values) printf("v: %l ", v);  // Commented out - format issue
+        printf("\nColumn %zu size: %zu\n", test_instance->col_sizes_count, values.size());
         return *values.begin();
     }
     int paramIndex = test_instance->current_count;
@@ -503,10 +517,16 @@ __host__ __device__ inline const T& GetGeneratorValue(std::initializer_list<T> v
 
 // Helper for lazy generator creation
 template<typename TestClass>
-inline DynamicRangeGenerator* CreateGenerator(const std::string& name) {
-    static DynamicRangeGenerator* generator =
-        new DynamicRangeGenerator(name, new TestClass());
+inline DynamicRangeGenerator* CreateGenerator(const std::string& name, GpuTestWithGenerator* test_case) {
+    static DynamicRangeGenerator* generator = new DynamicRangeGenerator(name, test_case);
     return generator;
+}
+
+// Helper for lazy generator creation
+template<typename TestClass>
+inline TestClass* CreateTest() {
+    static TestClass* test = new TestClass();
+    return test;
 }
 
 } // namespace gpu_generator
@@ -522,40 +542,77 @@ inline DynamicRangeGenerator* CreateGenerator(const std::string& name) {
 
 // Helper for launching generator-based GPU tests
 template<typename TestInstance>
+inline ::testing::AssertionResult LaunchCpuGeneratorTestCount(
+    void (*kernel)(GpuTestResult*, TestInstance*),
+    TestInstance* test_instance)
+{
+  printf("Generator key: %s\n", test_instance->current_generator->key.c_str());
+  if (::gpu_generator::g_colsizes_map.find(test_instance->current_generator->key) == ::gpu_generator::g_colsizes_map.end()) {
+    printf("First run for key, counting sizes...\n");
+    test_instance->on_counting = true;
+
+    // We can't call the CUDA kernel directly from host
+    // Instead, we need to launch it properly on the device for counting
+    GpuTestResult h{};
+    GpuTestResult* d = nullptr;
+    cudaMalloc(&d, sizeof(GpuTestResult));
+    cudaMemset(d, 0, sizeof(GpuTestResult));
+
+    TestInstance* d_instance = nullptr;
+    cudaMalloc(&d_instance, sizeof(TestInstance));
+    cudaMemcpy(d_instance, test_instance, sizeof(TestInstance), cudaMemcpyHostToDevice);
+
+    // Launch kernel with minimal configuration for counting
+    kernel<<<1, 1>>>(d, d_instance);
+    cudaDeviceSynchronize();
+
+    // Copy back the test instance to get the counted values
+    cudaMemcpy(test_instance, d_instance, sizeof(TestInstance), cudaMemcpyDeviceToHost);
+
+    cudaFree(d);
+    cudaFree(d_instance);
+
+    test_instance->on_counting = false;
+    ::gpu_generator::g_colsizes_map[test_instance->current_generator->key] = test_instance->col_sizes;
+    for (size_t i = 0; i < test_instance->col_sizes_count; ++i) {
+        printf("  Col %zu size: %d\n", i+1, test_instance->col_sizes[i]);
+    }
+    ::gpu_generator::g_test_modes[test_instance->current_generator->key] = test_instance->mode;
+    printf("mode: %s\n", (test_instance->mode == ::gpu_generator::SamplingMode::ALIGNED) ? "ALIGNED" : "FULL");
+    printf("Counted %zu columns: ", test_instance->col_sizes_count);
+    if (test_instance->mode == ::gpu_generator::SamplingMode::ALIGNED) {
+      printf("ALIGNED mode\n");
+      int max = 1;
+      for (int i = 0; i < (int)test_instance->col_sizes_count; ++i) {
+        if (test_instance->col_sizes[i] > max) {
+          max = test_instance->col_sizes[i];
+        }
+      }
+      test_instance->current_generator->end  = max;
+    } else {
+      printf("FULL mode\n");
+      int combinations = 1;
+      for (int i = 0; i < (int)test_instance->col_sizes_count; ++i) {
+        combinations *= test_instance->col_sizes[i];
+      }
+      test_instance->current_generator->end  = combinations;
+    }
+    printf("end = %d\n", test_instance->current_generator->end);
+    test_instance->current_count = test_instance->current_generator->end;
+
+    return ::testing::AssertionSuccess();
+  }
+
+  return ::testing::AssertionSuccess();
+}
+template<typename TestInstance>
 inline ::testing::AssertionResult LaunchGpuGeneratorTest(
     void (*kernel)(GpuTestResult*, TestInstance*),
     TestInstance* test_instance,
     const GpuLaunchCfg& cfg)
 {
-  if (::gpu_generator::g_colsizes_map.find(test_instance->current_generator->key) == ::gpu_generator::g_colsizes_map.end()) {
-    test_instance->on_counting = true;
-    _LaunchGpuGeneratorTest(kernel, test_instance, cfg);
-    test_instance->on_counting = false;
-    ::gpu_generator::g_colsizes_map[test_instance->current_generator->key] = test_instance->col_sizes;
-    ::gpu_generator::g_test_modes[test_instance->current_generator->key] = test_instance->mode;
-    if (test_instance->mode == ::gpu_generator::SamplingMode::ALIGNED) {
-      int max = 1;
-      for (int s : test_instance->col_sizes) max = std::max(max, s);
-      test_instance->current_generator->end  = max;
-    } else {
-      int combinations = 1;
-      for (int s : test_instance->col_sizes) combinations *= s;
-      test_instance->current_generator->end  = combinations;
-    }
-    return ::testing::AssertionSuccess();
-  }
-  test_instance->current_count = test_instance->GetParam();
-  test_instance->current_divider = 1;
-
-  return _LaunchGpuGeneratorTest(kernel, test_instance, cfg);
-}
-template<typename TestInstance>
-inline ::testing::AssertionResult _LaunchGpuGeneratorTest(
-    void (*kernel)(GpuTestResult*, TestInstance*),
-    TestInstance* test_instance,
-    const GpuLaunchCfg& cfg)
-{
-
+    test_instance->current_count = test_instance->GetParam();
+    test_instance->current_divider = 1;
   GpuTestResult h{}; GpuTestResult* d=nullptr;
   GPU_CHECK_CUDA(cudaMalloc(&d, sizeof(GpuTestResult)));
   GPU_CHECK_CUDA(cudaMemset(d, 0, sizeof(GpuTestResult)));
@@ -574,7 +631,7 @@ inline ::testing::AssertionResult _LaunchGpuGeneratorTest(
   }
   GPU_CHECK_CUDA(cudaStreamSynchronize(cfg.stream));
   GPU_CHECK_CUDA(cudaMemcpy(&h, d, sizeof(GpuTestResult), cudaMemcpyDeviceToHost));
-  GPU_CHECK_CUDA(cudaMemcpy(&test_instance, d_instance, sizeof(TestInstance), cudaMemcpyDeviceToHost));
+  GPU_CHECK_CUDA(cudaMemcpy(test_instance, d_instance, sizeof(TestInstance), cudaMemcpyDeviceToHost));
   cudaFree(d);
   cudaFree(d_instance);
 
@@ -595,35 +652,42 @@ inline ::testing::AssertionResult _LaunchGpuGeneratorTest(
     public: \
         void TestBody() override; \
         void RunGpuTest(); \
+        void RunCpuTest() override; \
     }; \
     __global__ void TestClassName##__##TestName##_kernel( \
         GpuTestResult* _gpu_result, \
         TestClassName##__##TestName##_Test* _test_instance); \
     inline ::gpu_generator::DynamicRangeGenerator* __gtest_generator__get_generator_##TestClassName##TestName() { \
         return ::gpu_generator::CreateGenerator<TestClassName##__##TestName##_Test>( \
-            #TestClassName"."#TestName); \
+            #TestClassName"."#TestName, ::gpu_generator::CreateTest<TestClassName##__##TestName##_Test>()); \
     } \
     INSTANTIATE_TEST_SUITE_P(Generator, TestClassName##__##TestName##_Test, \
         testing::internal::ParamGenerator<int>(__gtest_generator__get_generator_##TestClassName##TestName())); \
     TEST_P(TestClassName##__##TestName##_Test, __) { \
-        TestBody(); \
+        RunGpuTest(); \
     } \
     void TestClassName##__##TestName##_Test::TestBody() { \
         RunGpuTest(); \
     } \
+    void TestClassName##__##TestName##_Test::RunCpuTest() { \
+        auto* _test_instance = this; \
+        LaunchCpuGeneratorTestCount(TestClassName##__##TestName##_kernel, _test_instance); \
+    } \
     void TestClassName##__##TestName##_Test::RunGpuTest() { \
         auto* _test_instance = this; \
-        if (_test_instance->on_counting) { \
-            /* Skip GPU execution during counting phase */ \
-            return; \
-        } \
-        /* Set the generator for this test */ \
-        _test_instance->current_generator = __gtest_generator__get_generator_##TestClassName##TestName(); \
         auto cfg = this->launch_cfg(); \
         ASSERT_TRUE(LaunchGpuGeneratorTest( \
             TestClassName##__##TestName##_kernel, _test_instance, cfg)); \
     } \
+    __host__ __device__ void _##TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance); \
     __global__ void TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance) { \
+          _##TestClassName##__##TestName##_kernel(_gpu_result, _test_instance); \
+        } \
+    __host__ __device__ void _##TestClassName##__##TestName##_kernel( \
         GpuTestResult* _gpu_result, \
         TestClassName##__##TestName##_Test* _test_instance)
 
@@ -633,6 +697,7 @@ inline ::testing::AssertionResult _LaunchGpuGeneratorTest(
     public: \
         void TestBody() override; \
         void RunGpuTest(); \
+        void RunCpuTest(); \
         GpuLaunchCfg launch_cfg() const override { \
             return MakeLaunchCfg(GRID, BLOCK, ##__VA_ARGS__); \
         } \
@@ -642,28 +707,34 @@ inline ::testing::AssertionResult _LaunchGpuGeneratorTest(
         TestClassName##__##TestName##_Test* _test_instance); \
     inline ::gpu_generator::DynamicRangeGenerator* __gtest_generator__get_generator_##TestClassName##TestName() { \
         return ::gpu_generator::CreateGenerator<TestClassName##__##TestName##_Test>( \
-            #TestClassName"."#TestName); \
+            #TestClassName"."#TestName, ::gpu_generator::CreateTest<TestClassName##__##TestName##_Test>()); \
     } \
     INSTANTIATE_TEST_SUITE_P(Generator, TestClassName##__##TestName##_Test, \
         testing::internal::ParamGenerator<int>(__gtest_generator__get_generator_##TestClassName##TestName())); \
     TEST_P(TestClassName##__##TestName##_Test, __) { \
-        TestBody(); \
+        RunGpuTest(); \
     } \
     void TestClassName##__##TestName##_Test::TestBody() { \
         RunGpuTest(); \
     } \
+    void TestClassName##__##TestName##_Test::RunCpuTest() { \
+        auto* _test_instance = this; \
+        LaunchCpuGeneratorTestCount(TestClassName##__##TestName##_kernel, _test_instance); \
+    } \
     void TestClassName##__##TestName##_Test::RunGpuTest() { \
         auto* _test_instance = this; \
-        if (_test_instance->on_counting) { \
-            /* Skip GPU execution during counting phase */ \
-            return; \
-        } \
-        /* Set the generator for this test */ \
-        _test_instance->current_generator = __gtest_generator__get_generator_##TestClassName##TestName(); \
         auto cfg = this->launch_cfg(); \
         ASSERT_TRUE(LaunchGpuGeneratorTest( \
             TestClassName##__##TestName##_kernel, _test_instance, cfg)); \
     } \
+    __host__ __device__ void _##TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance); \
     __global__ void TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance) { \
+          _##TestClassName##__##TestName##_kernel(_gpu_result, _test_instance); \
+        } \
+    __host__ __device__ void _##TestClassName##__##TestName##_kernel( \
         GpuTestResult* _gpu_result, \
         TestClassName##__##TestName##_Test* _test_instance)

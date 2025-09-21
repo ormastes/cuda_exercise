@@ -440,10 +440,10 @@ public:
     }
 
     testing::internal::ParamIteratorInterface<int>* End() const override {
-      if (end == 0) {
-                           test_instance->RunCpuTest();
+        if (end == 0) {
+            test_instance->RunCpuTest();
             end = test_instance->current_count;
-      }
+        }
         return new DynIterator(end, this, true);
     }
 
@@ -495,13 +495,10 @@ __host__ __device__ constexpr size_t make_unique_id(const char* file, int line) 
 // Get generator value based on current iteration
 template <size_t UniqueId, typename T>
 __host__ __device__ inline const T& GetGeneratorValue(std::initializer_list<T> values, gpu_generator::GpuTestWithGenerator* test_instance) {
-      assert(values.size() > 0 && "Generator values cannot be empty");
+    assert(values.size() > 0 && "Generator values cannot be empty");
     if (test_instance->on_counting) {
         test_instance->col_sizes[test_instance->col_sizes_count] = (int)values.size();
         test_instance->col_sizes_count++;
-        // Debug print - iterate through initializer_list using range-based for
-        // for (auto v : values) printf("v: %l ", v);  // Commented out - format issue
-        printf("\nColumn %zu size: %zu\n", test_instance->col_sizes_count, values.size());
         return *values.begin();
     }
     int paramIndex = test_instance->current_count;
@@ -510,7 +507,6 @@ __host__ __device__ inline const T& GetGeneratorValue(std::initializer_list<T> v
         test_instance->current_divider *= (int)values.size();
         return *(values.begin() + ((paramIndex / devider) % values.size()));
     } else {
-
         return *(values.begin() + (paramIndex % values.size()));
     }
 }
@@ -546,63 +542,54 @@ inline ::testing::AssertionResult LaunchCpuGeneratorTestCount(
     void (*kernel)(GpuTestResult*, TestInstance*),
     TestInstance* test_instance)
 {
-  printf("Generator key: %s\n", test_instance->current_generator->key.c_str());
-  if (::gpu_generator::g_colsizes_map.find(test_instance->current_generator->key) == ::gpu_generator::g_colsizes_map.end()) {
-    printf("First run for key, counting sizes...\n");
-    test_instance->on_counting = true;
+    if (::gpu_generator::g_colsizes_map.find(test_instance->current_generator->key) == ::gpu_generator::g_colsizes_map.end()) {
+        test_instance->on_counting = true;
 
-    // We can't call the CUDA kernel directly from host
-    // Instead, we need to launch it properly on the device for counting
-    GpuTestResult* d = nullptr;
-    cudaMalloc(&d, sizeof(GpuTestResult));
-    cudaMemset(d, 0, sizeof(GpuTestResult));
+        // We can't call the CUDA kernel directly from host
+        // Instead, we need to launch it properly on the device for counting
+        GpuTestResult* d = nullptr;
+        cudaMalloc(&d, sizeof(GpuTestResult));
+        cudaMemset(d, 0, sizeof(GpuTestResult));
 
-    TestInstance* d_instance = nullptr;
-    cudaMalloc(&d_instance, sizeof(TestInstance));
-    cudaMemcpy(d_instance, test_instance, sizeof(TestInstance), cudaMemcpyHostToDevice);
+        TestInstance* d_instance = nullptr;
+        cudaMalloc(&d_instance, sizeof(TestInstance));
+        cudaMemcpy(d_instance, test_instance, sizeof(TestInstance), cudaMemcpyHostToDevice);
 
-    // Launch kernel with minimal configuration for counting
-    kernel<<<1, 1>>>(d, d_instance);
-    cudaDeviceSynchronize();
+        // Launch kernel with minimal configuration for counting
+        kernel<<<1, 1>>>(d, d_instance);
+        cudaDeviceSynchronize();
 
-    // Copy back the test instance to get the counted values
-    cudaMemcpy(test_instance, d_instance, sizeof(TestInstance), cudaMemcpyDeviceToHost);
+        // Copy back the test instance to get the counted values
+        cudaMemcpy(test_instance, d_instance, sizeof(TestInstance), cudaMemcpyDeviceToHost);
 
-    cudaFree(d);
-    cudaFree(d_instance);
+        cudaFree(d);
+        cudaFree(d_instance);
 
-    test_instance->on_counting = false;
-    ::gpu_generator::g_colsizes_map[test_instance->current_generator->key] = test_instance->col_sizes;
-    for (size_t i = 0; i < test_instance->col_sizes_count; ++i) {
-        printf("  Col %zu size: %d\n", i+1, test_instance->col_sizes[i]);
-    }
-    ::gpu_generator::g_test_modes[test_instance->current_generator->key] = test_instance->mode;
-    printf("mode: %s\n", (test_instance->mode == ::gpu_generator::SamplingMode::ALIGNED) ? "ALIGNED" : "FULL");
-    printf("Counted %zu columns: ", test_instance->col_sizes_count);
-    if (test_instance->mode == ::gpu_generator::SamplingMode::ALIGNED) {
-      printf("ALIGNED mode\n");
-      int max = 1;
-      for (int i = 0; i < (int)test_instance->col_sizes_count; ++i) {
-        if (test_instance->col_sizes[i] > max) {
-          max = test_instance->col_sizes[i];
+        test_instance->on_counting = false;
+        ::gpu_generator::g_colsizes_map[test_instance->current_generator->key] = test_instance->col_sizes;
+        ::gpu_generator::g_test_modes[test_instance->current_generator->key] = test_instance->mode;
+
+        if (test_instance->mode == ::gpu_generator::SamplingMode::ALIGNED) {
+            int max = 1;
+            for (int i = 0; i < (int)test_instance->col_sizes_count; ++i) {
+                if (test_instance->col_sizes[i] > max) {
+                    max = test_instance->col_sizes[i];
+                }
+            }
+            test_instance->current_generator->end = max;
+        } else {
+            int combinations = 1;
+            for (int i = 0; i < (int)test_instance->col_sizes_count; ++i) {
+                combinations *= test_instance->col_sizes[i];
+            }
+            test_instance->current_generator->end = combinations;
         }
-      }
-      test_instance->current_generator->end  = max;
-    } else {
-      printf("FULL mode\n");
-      int combinations = 1;
-      for (int i = 0; i < (int)test_instance->col_sizes_count; ++i) {
-        combinations *= test_instance->col_sizes[i];
-      }
-      test_instance->current_generator->end  = combinations;
+        test_instance->current_count = test_instance->current_generator->end;
+
+        return ::testing::AssertionSuccess();
     }
-    printf("end = %d\n", test_instance->current_generator->end);
-    test_instance->current_count = test_instance->current_generator->end;
 
     return ::testing::AssertionSuccess();
-  }
-
-  return ::testing::AssertionSuccess();
 }
 template<typename TestInstance>
 inline ::testing::AssertionResult LaunchGpuGeneratorTest(
@@ -612,37 +599,38 @@ inline ::testing::AssertionResult LaunchGpuGeneratorTest(
 {
     test_instance->current_count = test_instance->GetParam();
     test_instance->current_divider = 1;
-  GpuTestResult h{}; GpuTestResult* d=nullptr;
-  GPU_CHECK_CUDA(cudaMalloc(&d, sizeof(GpuTestResult)));
-  GPU_CHECK_CUDA(cudaMemset(d, 0, sizeof(GpuTestResult)));
 
-  // Allocate device memory for test instance
-  TestInstance* d_instance = nullptr;
-  GPU_CHECK_CUDA(cudaMalloc(&d_instance, sizeof(TestInstance)));
-  GPU_CHECK_CUDA(cudaMemcpy(d_instance, test_instance, sizeof(TestInstance), cudaMemcpyHostToDevice));
+    GpuTestResult h{};
+    GpuTestResult* d = nullptr;
+    GPU_CHECK_CUDA(cudaMalloc(&d, sizeof(GpuTestResult)));
+    GPU_CHECK_CUDA(cudaMemset(d, 0, sizeof(GpuTestResult)));
 
-  kernel<<<cfg.grid, cfg.block, cfg.shmem, cfg.stream>>>(d, d_instance);
-  cudaError_t post = cudaGetLastError();
-  if (post != cudaSuccess) {
-    cudaFree(d);  
+    // Allocate device memory for test instance
+    TestInstance* d_instance = nullptr;
+    GPU_CHECK_CUDA(cudaMalloc(&d_instance, sizeof(TestInstance)));
+    GPU_CHECK_CUDA(cudaMemcpy(d_instance, test_instance, sizeof(TestInstance), cudaMemcpyHostToDevice));
+
+    kernel<<<cfg.grid, cfg.block, cfg.shmem, cfg.stream>>>(d, d_instance);
+    cudaError_t post = cudaGetLastError();
+    if (post != cudaSuccess) {
+        cudaFree(d);
+        cudaFree(d_instance);
+        return ::testing::AssertionFailure() << "Kernel launch: " << cudaGetErrorString(post);
+    }
+    GPU_CHECK_CUDA(cudaStreamSynchronize(cfg.stream));
+    GPU_CHECK_CUDA(cudaMemcpy(&h, d, sizeof(GpuTestResult), cudaMemcpyDeviceToHost));
+    GPU_CHECK_CUDA(cudaMemcpy(test_instance, d_instance, sizeof(TestInstance), cudaMemcpyDeviceToHost));
+    cudaFree(d);
     cudaFree(d_instance);
-    return ::testing::AssertionFailure() << "Kernel launch: " << cudaGetErrorString(post);
-  }
-  GPU_CHECK_CUDA(cudaStreamSynchronize(cfg.stream));
-  GPU_CHECK_CUDA(cudaMemcpy(&h, d, sizeof(GpuTestResult), cudaMemcpyDeviceToHost));
-  GPU_CHECK_CUDA(cudaMemcpy(test_instance, d_instance, sizeof(TestInstance), cudaMemcpyDeviceToHost));
-  cudaFree(d);
-  cudaFree(d_instance);
 
-
-
-  if (h.failed) {
-    ::testing::Message m; m << h.first_file << ":" << h.first_line
-                            << " — " << h.first_msg
-                            << " (failures=" << h.failures_count << ")";
-    return ::testing::AssertionFailure() << m;
-  }
-  return ::testing::AssertionSuccess();
+    if (h.failed) {
+        ::testing::Message m;
+        m << h.first_file << ":" << h.first_line
+          << " — " << h.first_msg
+          << " (failures=" << h.failures_count << ")";
+        return ::testing::AssertionFailure() << m;
+    }
+    return ::testing::AssertionSuccess();
 }
 
 // GPU generator test macro

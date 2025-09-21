@@ -10,25 +10,6 @@ protected:
     }
 };
 
-// Simple generator test with FULL mode (Cartesian product)
-// This macro creates a test class and kernel
-GPU_TEST_G(GpuGeneratorTest, CartesianProduct) {
-    // In the kernel body, we need to access the generated values
-    // The values are generated on the host and passed to the device
-
-    // For now, let's use a simple approach with device-side computation
-    int tid = threadIdx.x + blockIdx.x * blockDim.x;
-
-    if (tid == 0) {
-        // Simple test - we can't directly use GENERATOR in kernel
-        // Instead, we test basic GPU functionality
-        int a = 5;
-        int b = 10;
-        GPU_EXPECT_TRUE(a < b);
-        GPU_EXPECT_EQ(a + b, 15);
-    }
-}
-
 // Test with ALIGNED mode (round-robin)
 GPU_TEST_G(GpuGeneratorTest, AlignedMode) {
     int x = GPU_GENERATOR(1, 2, 3, 4);
@@ -53,6 +34,7 @@ GPU_TEST_G_CFG(GpuGeneratorTest, ThreadConfig, 2, 32) {
     int blocks = GPU_GENERATOR(1, 2, 4);
     GPU_USE_GENERATOR();  // 3 * 3 = 9 combinations
 
+#ifdef __CUDA_ARCH__
     // This test runs with <<<2, 32>>> configuration
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -61,6 +43,7 @@ GPU_TEST_G_CFG(GpuGeneratorTest, ThreadConfig, 2, 32) {
         GPU_EXPECT_TRUE(blocks > 0);
         GPU_EXPECT_EQ(threads * blocks, blocks * threads);
     }
+#endif
 }
 
 // Test with floating point values
@@ -126,6 +109,7 @@ GPU_TEST_G_CFG(GpuGeneratorTest, GridStrideLoop, 4, 64) {
     int multiplier = GPU_GENERATOR(2, 3);
     GPU_USE_GENERATOR();  // 3 * 2 = 6 combinations
 
+#ifdef __CUDA_ARCH__
     GPU_FOR_ALL(i, array_size) {
         int value = i * multiplier;
         int expected = i * multiplier;
@@ -135,6 +119,7 @@ GPU_TEST_G_CFG(GpuGeneratorTest, GridStrideLoop, 4, 64) {
             GPU_EXPECT_EQ(value, 0);
         }
     }
+#endif
 }
 
 // Test edge cases

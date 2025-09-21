@@ -70,7 +70,7 @@ Create or update `.vscode/launch.json` in your workspace root to configure CUDA 
 ## **3.3 Debugging Workflow**
 
 ### **Prerequisites**
-- Complete example code from Part 1 ("Your First CUDA Kernel")
+- Complete example code (`vector_add_2d.cu` in this directory)
 - Working CMake build configuration
 - VSCode with Nsight extension installed
 
@@ -99,9 +99,10 @@ Create or update `.vscode/launch.json` in your workspace root to configure CUDA 
    - View thread coordinates (threadIdx, blockIdx)
 
 5. **Inspect Variables**
-   - Hover over variables to see values
-   - Use Watch panel for complex expressions
+   - Hover over variables to see values (e.g., `x`, `y`, `i` in vectorAdd2D)
+   - Use Watch panel for complex expressions like `y * width + x`
    - Variables panel shows local and global values
+   - Inspect 2D grid indices and device function results
 
 ---
 
@@ -130,21 +131,21 @@ To debug specific threads, use conditional breakpoints:
 2. Select **"Add Conditional Breakpoint..."**
 3. Enter a condition using CUDA built-in variables:
 
-**Common CUDA Conditional Expressions:**
+**Common CUDA Conditional Expressions (for vector_add_2d.cu's 2D grid):**
 ```cpp
-// Break only for thread (0,0,0) in block (0,0,0)
-threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0
+// Break only for thread (0,0) in block (0,0) - useful for vectorAdd2D
+threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 0
 
-// Break for the last thread in a block
-threadIdx.x == blockDim.x - 1
+// Break for the last thread in a 2D block
+threadIdx.x == blockDim.x - 1 && threadIdx.y == blockDim.y - 1
 
-// Break for specific global thread ID
-blockIdx.x * blockDim.x + threadIdx.x == 1024
+// Break for specific 2D position in vectorAdd2D
+int x = blockIdx.x * blockDim.x + threadIdx.x; x == 512 && y == 512
 
-// Break for boundary threads
-threadIdx.x == 0 || threadIdx.x == blockDim.x - 1
+// Break for boundary threads in 2D
+threadIdx.x == 0 || threadIdx.y == 0
 
-// Break for specific warp
+// Break for specific warp in reduceSum
 (threadIdx.x / 32) == 2
 ```
 
@@ -230,43 +231,57 @@ When debugging CUDA with Nsight VSCode Edition, you use VSCode's standard debugg
 
 ### **3.6.1 Debugging Array Access**
 
-**Example: Vector Addition Kernel**
+**Example: Vector Addition 2D Kernel**
 ```cpp
-// File: vector_add.cu (example implementation)
-__global__ void vectorAdd(float* A, float* B, float* C, int N) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    // Set breakpoint here to inspect index calculation
-    if (idx < N) {
-        C[idx] = A[idx] + B[idx];  // Breakpoint: Check array values
+// File: vector_add_2d.cu (example implementation)
+__device__ float square(float x) {
+    return x * x;
+}
+
+__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int i = y * width + x;
+
+    // Set breakpoint here to inspect 2D index calculation
+    if (x < width && y < height) {
+        C[i] = square(A[i]) + B[i];  // Breakpoint: Check array values and square function
     }
 }
 ```
 
 **What to inspect:**
-- Value of `idx` for different threads
-- Array contents at `A[idx]`, `B[idx]`
-- Boundary conditions when `idx` approaches `N`
+- Values of `x`, `y`, and `i` for different threads
+- 2D to 1D index mapping calculation
+- Array contents at `A[i]`, `B[i]`
+- Boundary conditions when `x` approaches `width` and `y` approaches `height`
+- Device function `square()` execution
 
 ### **3.6.2 Debugging Race Conditions**
 
 ```cpp
-// File: reduce_sum.cu (example implementation)
-__global__ void reduceSum(float* data, float* result, int N) {
-    __shared__ float sdata[256];
-    int tid = threadIdx.x;
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    // Load to shared memory
-    sdata[tid] = (idx < N) ? data[idx] : 0;
+// File: vector_add_2d.cu (included in this directory)
+__global__ void reduceSum(const float* input, float* output, int N) {
+    extern __shared__ float sdata[];
+
+    unsigned int tid = threadIdx.x;
+    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    // Load data to shared memory
+    sdata[tid] = (i < N) ? input[i] : 0.0f;
     __syncthreads();  // Breakpoint: Check all threads reached here
-    
+
     // Reduction in shared memory
-    for (int s = blockDim.x/2; s > 0; s >>= 1) {
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
         if (tid < s) {
             sdata[tid] += sdata[tid + s];  // Breakpoint: Verify reduction
         }
         __syncthreads();
+    }
+
+    // Write result for this block to global memory
+    if (tid == 0) {
+        atomicAdd(output, sdata[0]);  // Breakpoint: Check atomic operation
     }
 }
 ```
@@ -304,19 +319,24 @@ Enable memory checking with cuda-memcheck:
 **Note:** printf in kernels requires compute capability 2.0 or higher.
 
 ```cpp
-// File: debug_kernel.cu (example implementation)
-__global__ void debugKernel(int* data, int N) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    // Print from specific thread
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
-        printf("Block %d started processing\n", blockIdx.x);
+// Adapting vector_add_2d.cu for printf debugging
+__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int i = y * width + x;
+
+    // Print from specific thread for debugging
+    if (threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
+        printf("Block (%d,%d) started processing\n", blockIdx.x, blockIdx.y);
     }
-    
-    if (idx < N) {
-        // Print values for debugging
-        printf("Thread (%d,%d) processing index %d, value = %d\n", 
-               blockIdx.x, threadIdx.x, idx, data[idx]);
+
+    if (x < width && y < height) {
+        // Print values for debugging specific threads
+        if (x == 0 && y == 0) {  // First element
+            printf("Thread (%d,%d,%d,%d) processing index %d, A=%f, B=%f\n",
+                   blockIdx.x, blockIdx.y, threadIdx.x, threadIdx.y, i, A[i], B[i]);
+        }
+        C[i] = square(A[i]) + B[i];
     }
 }
 ```
@@ -390,10 +410,11 @@ Use these techniques while debugging:
 Add guard conditions in your kernel to create targeted debug points:
 
 ```cpp
-// Only break for thread (0,0) in block (1,0)
-if (blockIdx.x == 1 && threadIdx.x == 0 && threadIdx.y == 0) {
-    // Set breakpoint here
+// In vector_add_2d.cu - Only break for specific thread in 2D grid
+if (blockIdx.x == 1 && blockIdx.y == 0 && threadIdx.x == 0 && threadIdx.y == 0) {
+    // Set breakpoint here for 2D grid debugging
     int debug_point = 1;
+    // Can examine x, y, i variables at this point
 }
 ```
 
@@ -402,16 +423,22 @@ if (blockIdx.x == 1 && threadIdx.x == 0 && threadIdx.y == 0) {
 Debug at warp granularity:
 
 ```cpp
-// File: warp_debug.cu (example implementation)
-__global__ void warpDebug() {
-    int warpId = threadIdx.x / 32;
-    int laneId = threadIdx.x % 32;
-    
+// Warp-level debugging in reduceSum from vector_add_2d.cu
+__global__ void reduceSum(const float* input, float* output, int N) {
+    extern __shared__ float sdata[];
+    unsigned int tid = threadIdx.x;
+
+    // Warp-level debugging
+    int warpId = tid / 32;
+    int laneId = tid % 32;
+
     // Break only for first thread of each warp
     if (laneId == 0) {
-        printf("Warp %d starting\n", warpId);
-        // Set breakpoint here
+        printf("Warp %d in block %d starting reduction\n", warpId, blockIdx.x);
+        // Set breakpoint here for warp debugging
     }
+
+    // Rest of reduction code...
 }
 ```
 
@@ -420,12 +447,15 @@ __global__ void warpDebug() {
 Debug memory consistency issues:
 
 ```cpp
-// File: memory_fence.cu (example implementation)
-__global__ void memoryFenceDebug(int* flag, int* data) {
-    if (threadIdx.x == 0) {
-        data[0] = 42;
-        __threadfence();  // Breakpoint: Check memory visibility
-        atomicExch(flag, 1);
+// Memory synchronization in reduceSum from vector_add_2d.cu
+__global__ void reduceSum(const float* input, float* output, int N) {
+    // ... reduction code ...
+
+    // Write result for this block to global memory
+    if (tid == 0) {
+        // Memory fence ensures all threads see updated sdata[0]
+        __threadfence_block();  // Breakpoint: Check memory visibility
+        atomicAdd(output, sdata[0]);  // Atomic operation for thread safety
     }
 }
 ```

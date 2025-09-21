@@ -1,6 +1,6 @@
 # 🚀 Basic CUDA Programming Tutorial (Code-Based)
 
-> **Note**: Each chapter (except Part 1) introduces concepts or APIs via working example code.
+> **Note**: This section covers fundamental CUDA concepts and basic programming techniques. Each chapter (except Part 1) introduces concepts via working example code.
 
 ---
 
@@ -114,107 +114,66 @@ Build a conceptual base before writing code. See [11.Foundations/README.md](11.F
 - **6.9** [Production Error Handling](16.Error%20Handling%20and%20Debugging/README.md#69-production-error-handling)
 - **6.10** [Summary](16.Error%20Handling%20and%20Debugging/README.md#610-summary)
 
-📄 *Example Code:* Error handling utilities and examples
-
----
-
-# 🚀 Planned Future Content
-
-> **Note**: The following sections are planned for future development and will be added as the tutorial expands.
+📄 *Example Code:* `error_handling_demo.cu`
 
 ---
 
 ## 🧠 Part 7: Memory Hierarchy
 
-what memory bandwidth, size, latency, usage. bank conflicts, coalescing, etc.
+**Goal**: Understanding CUDA memory types, bandwidth, latency, and basic optimization strategies.
+
+- **7.1** Global Memory Characteristics
+- **7.2** Shared Memory Basics
+- **7.3** Constant and Texture Memory
+- **7.4** Register Usage
+- **7.5** Memory Coalescing Introduction
+- **7.6** Basic Bank Conflicts
+
+📄 *Example Code:* `matrix_multiply.cu` (evolves from vector_add to matrix multiplication, demonstrates coalescing)
 
 ---
 
 ## 🧵 Part 8: Thread Hierarchy in Practice
 
-**Goal**: Demonstrate thread, warp, block, SM and grid concepts with 2D image processing.
+**Goal**: Demonstrate thread, warp, block, SM and grid concepts with practical examples.
 
 - **8.1** `blockDim`, `threadIdx`, `gridDim`, `blockIdx`
 - **8.2** 1D / 2D / 3D Kernels
 - **8.3** Thread Indexing in Image Processing
+- **8.4** Warp Basics and Divergence
 
-📄 *Example Code:* `image_negation_2D.cu`
-
----
-
-## 🗃️ Part 9: CUDA Basic Memory API
-
-**Goal**: Use `cudaMalloc`, `cudaMemcpy`, `cudaFree`.
-
-- **9.1** Allocating Memory on Device
-- **9.2** Copying Memory Between Host & Device
-- **9.3** Pageable vs Pinned Memory
-
-📄 *Example Code:* `cuda_memory_api_demo.cu`
+📄 *Example Code:* `matrix_multiply_tiled.cu` (adds shared memory tiling to matrix multiplication)
 
 ---
 
+## 🗃️ Part 9: CUDA Memory API
 
-## 🧠 Part 10: Memory Lock, async and Synchronization
+**Goal**: Master basic CUDA memory management APIs.
 
-all cuda lock, async with CUB and synchronization aspects. 
+- **9.1** `cudaMalloc`, `cudaFree`
+- **9.2** `cudaMemcpy` and Transfer Directions
+- **9.3** `cudaMemset` and Initialization
+- **9.4** Pageable vs Pinned Memory Basics
+- **9.5** Error Handling in Memory Operations
 
-
-## 🧮 Part 11: Streams and Asynchronous Execution
-
-**Goal**: Introduce `cudaStream_t` and overlapped copy/compute.
-
-- **11.1** Using Streams to Avoid Serialization
-- **11.2** Async Memory Copy
-- **11.3** Measuring Performance with Events
-
-📄 *Example Code:* `stream_overlap_example.cu`
+📄 *Example Code:* `matrix_multiply_pinned.cu` (demonstrates pinned memory for faster transfers)
 
 ---
 
+## ✅ Summary
 
+This section covered the fundamental concepts of CUDA programming:
 
-## 📊 Part 12: Unified Memory and `cudaMallocManaged`
+1. **Foundations**: Understanding GPU architecture and CUDA programming model
+2. **First Kernel**: Writing and launching basic CUDA kernels
+3. **Debugging**: Using cuda-gdb and VSCode for debugging
+4. **Profiling**: Performance analysis with Nsight tools
+5. **Testing**: Unit testing CUDA code with Google Test
+6. **Error Handling**: Robust error checking and recovery strategies
+7. **Memory Hierarchy**: Understanding different memory types
+8. **Thread Hierarchy**: Working with threads, blocks, and grids
+9. **Memory API**: Basic memory management operations
 
-**Goal**: Introduce Unified Memory for simplified data access.
-
-- **12.1** Pros and Cons of Unified Memory
-- **12.2** Using `cudaMallocManaged`
-- **12.3** Memory Migration and Prefetching
-
-📄 *Example Code:* `unified_memory_vector_add.cu`
-
----
-
-## 📊 Part 13: Pin host/CUDA memory
-
-
-
----
-
-## 🖴 Part 14: CUDA and NVMe (cuFile & GDS Intro)
-
-**Goal**: Bridge to high-performance I/O with GPU & storage.
-
-- **14.1** Intro to GPUDirect Storage
-- **14.2** Overview of `cuFile` API
-- **14.3** Example: Reading Data from SSD to GPU Memory
-
-📄 *Example Code:* `cufile_read_example.cu`
-
----
-
-## 🧩 Part 15: Using CUDA Libraries (cuBLAS, cuFFT, etc.)
-
-**Goal**: Leverage NVIDIA's optimized libraries.
-
-- **15.1** cuBLAS: Matrix Multiplication
-- **15.2** cuFFT: Signal Transformation
-- **15.3** cuRAND: Random Number Generation
-
-📄 *Example Code:*  
-- `cublas_gemm.cu`  
-- `cufft_demo.cu`  
-- `curand_demo.cu`
+**Next Steps**: Continue with [20.intermediate_cuda](../20.intermediate_cuda/README.md) for advanced topics including streams, unified memory, and CUDA libraries.
 
 ---

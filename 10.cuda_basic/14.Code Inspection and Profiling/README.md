@@ -985,7 +985,79 @@ ncu --metrics gld_efficiency,gst_efficiency ./program
 ncu --metrics l1_cache_hit_rate,l2_cache_hit_rate ./program
 ```
 
-#### **Example: Memory Coalescing Comparison**
+#### **Example: Memory Coalescing with vector_add_2d.cu**
+
+The project includes `vector_add_2d.cu` which demonstrates:
+1. **NVTX Markers** - Visual profiling ranges
+2. **Coalesced vs Strided Access** - Performance comparison
+3. **Memory Error Detection** - Intentional bugs for sanitizer testing
+
+**Running the Examples:**
+
+```bash
+# Build the project
+cmake -DCMAKE_BUILD_TYPE=Profile -B build_profile
+cmake --build build_profile
+
+# Run with coalesced access (default)
+./build_profile/10.cuda_basic/14.Code\ Inspection\ and\ Profiling/14_CodeInspectionAndProfiling
+
+# Run with strided access comparison
+./build_profile/10.cuda_basic/14.Code\ Inspection\ and\ Profiling/14_CodeInspectionAndProfiling --strided
+
+# Run with memory error example (for sanitizer testing)
+./build_profile/10.cuda_basic/14.Code\ Inspection\ and\ Profiling/14_CodeInspectionAndProfiling --memory-error
+```
+
+**Profiling the Examples:**
+
+```bash
+# Profile with NVTX visualization
+nsys profile --trace=cuda,nvtx -o coalesced_report ./14_CodeInspectionAndProfiling
+nsys profile --trace=cuda,nvtx -o strided_report ./14_CodeInspectionAndProfiling --strided
+
+# Compare memory coalescing efficiency
+ncu --metrics gld_efficiency,gst_efficiency --kernel-name ".*Coalesced" ./14_CodeInspectionAndProfiling
+ncu --metrics gld_efficiency,gst_efficiency --kernel-name ".*Strided" ./14_CodeInspectionAndProfiling --strided
+
+# Detect memory errors
+compute-sanitizer ./14_CodeInspectionAndProfiling --memory-error
+```
+
+**Key Kernels in vector_add_2d.cu:**
+
+1. **vectorAdd2D_Coalesced**: Row-major access pattern (good coalescing)
+   - Adjacent threads access adjacent memory locations
+   - High memory efficiency (~95% typical)
+
+2. **vectorAdd2D_Strided**: Column-major access in row-major storage (poor coalescing)
+   - Adjacent threads access strided memory locations
+   - Low memory efficiency (~20-30% typical)
+
+3. **vectorAdd2D_WithBug**: Missing boundary checks (for error detection)
+   - Demonstrates out-of-bounds access
+   - Use with compute-sanitizer to detect errors
+
+4. **reduceSum**: Shared memory reduction with atomic operations
+   - Shows shared memory usage patterns
+   - Demonstrates synchronization requirements
+
+**NVTX Ranges in the Code:**
+
+The example uses hierarchical NVTX ranges to visualize different phases:
+- Memory allocation (Host and Device)
+- Data initialization
+- Host-to-Device transfers (marked in red)
+- Kernel execution (marked in green/blue)
+- Device-to-Host transfers
+- Cleanup operations
+
+View in Nsight Systems GUI to see the colored timeline:
+```bash
+nsys-ui coalesced_report.nsys-rep
+```
+
+#### **Example: Alternative Memory Coalescing Comparison**
 
 **Complete runnable example comparing coalesced vs uncoalesced access:**
 

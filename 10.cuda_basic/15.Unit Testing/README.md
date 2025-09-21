@@ -1,339 +1,192 @@
-# ⚡ Part 5: Unit Testing CUDA Code
+# Unit Testing for CUDA with GPU Testing Framework
 
-**Goal**: Learn how to write unit tests for both host and device CUDA code using Google Test.
+This project demonstrates how to write unit tests for CUDA kernels using the GPU testing framework (gpu_gtest.h) that allows tests to run directly on the GPU.
 
----
+## Project Structure
 
-## **5.1 Introduction to GPU Testing**
+- `vector_add_2d.cu` - Implementation of 2D vector operations kernels
+- `vector_add_2d.h` - Header file with kernel declarations and helper functions
+- `test_vector_add_2d.cu` - Unit tests using the GPU testing framework
+- `CMakeLists.txt` - Build configuration
 
-Testing CUDA code presents unique challenges:
-- **Device code** runs on GPU and cannot directly use CPU testing frameworks
-- **Kernel launches** are asynchronous and need proper synchronization
-- **Memory management** between host and device requires careful handling
-- **Error checking** must cover both launch and execution errors
+## Implemented Kernels
 
-Our solution uses `gpu_gtest.h` - a lightweight bridge between Google Test and CUDA that enables:
-- Host-level testing of CUDA API calls
-- Device-level testing of kernel logic
-- Unified test reporting and assertions
+### 1. `vector_add_2d`
+Simple 2D vector addition kernel that adds two matrices element-wise.
 
----
+```cuda
+__global__ void vector_add_2d(const float* a, const float* b, float* c, int width, int height)
+```
 
-## **5.2 Host-Level Unit Testing**
+### 2. `reduce_sum_2d`
+2D reduction kernel that sums all elements in a matrix using shared memory and atomic operations.
 
-Host-level tests verify CUDA API usage, memory management, and kernel launches from the CPU side.
+```cuda
+__global__ void reduce_sum_2d(const float* input, float* output, int width, int height)
+```
 
-### **5.2.1 Basic Structure**
+## Test Types Demonstrated
 
-```cpp
-#include <gtest/gtest.h>
-#include <cuda_runtime.h>
+The project showcases 4 different GPU test macros:
 
-TEST(CudaApiTest, DeviceDetection) {
-    int deviceCount = 0;
-    cudaError_t error = cudaGetDeviceCount(&deviceCount);
+### 1. GPU_TEST - Simple Device Test
+Basic test that runs on the GPU with default launch configuration (<<<1,1>>>).
 
-    EXPECT_EQ(error, cudaSuccess);
-    EXPECT_GT(deviceCount, 0) << "No CUDA devices found";
+```cuda
+GPU_TEST(SimpleDeviceTest, ComputeSum) {
+    float result = compute_sum(3.0f, 4.0f);
+    GPU_EXPECT_NEAR(result, 7.0f, 1e-5f);
 }
 ```
 
-### **5.2.2 Testing Memory Operations**
+### 2. GPU_TEST_CFG - Test with Custom Configuration
+Test with explicit launch configuration (grid and block dimensions).
 
-```cpp
-TEST(CudaMemoryTest, AllocateAndFree) {
-    const size_t size = 1024 * sizeof(float);
-    float* d_data = nullptr;
-
-    // Test allocation
-    EXPECT_EQ(cudaMalloc(&d_data, size), cudaSuccess);
-    EXPECT_NE(d_data, nullptr);
-
-    // Test memset
-    EXPECT_EQ(cudaMemset(d_data, 0, size), cudaSuccess);
-
-    // Test free
-    EXPECT_EQ(cudaFree(d_data), cudaSuccess);
-}
-```
-
-### **5.2.3 Testing Kernel Launches**
-
-```cpp
-__global__ void simpleKernel(int* result) {
-    *result = threadIdx.x + blockIdx.x * blockDim.x;
-}
-
-TEST(KernelLaunchTest, SimpleKernelExecution) {
-    int* d_result;
-    int h_result = -1;
-
-    ASSERT_EQ(cudaMalloc(&d_result, sizeof(int)), cudaSuccess);
-
-    simpleKernel<<<1, 32>>>(d_result);
-
-    ASSERT_EQ(cudaGetLastError(), cudaSuccess);
-    ASSERT_EQ(cudaDeviceSynchronize(), cudaSuccess);
-
-    ASSERT_EQ(cudaMemcpy(&h_result, d_result, sizeof(int),
-                         cudaMemcpyDeviceToHost), cudaSuccess);
-
-    EXPECT_GE(h_result, 0);
-    EXPECT_LT(h_result, 32);
-
-    cudaFree(d_result);
-}
-```
-
----
-
-## **5.3 Device-Level Unit Testing**
-
-Device-level tests run assertions directly inside CUDA kernels using our `gpu_gtest.h` bridge.
-
-### **5.3.1 GPU_TEST Macro**
-
-The simplest form runs a test kernel with default <<<1,1>>> configuration:
-
-```cpp
-#include "../../00.lib/gpu_gtest.h"
-
-GPU_TEST(DeviceMath, BasicArithmetic) {
-    int a = 5;
-    int b = 3;
-
-    GPU_EXPECT_EQ(a + b, 8);
-    GPU_EXPECT_EQ(a - b, 2);
-    GPU_EXPECT_EQ(a * b, 15);
-    GPU_EXPECT_TRUE(a > b);
-}
-```
-
-### **5.3.2 GPU_TEST_CFG with Custom Launch Configuration**
-
-For tests requiring multiple threads:
-
-```cpp
-GPU_TEST_CFG(ParallelTest, ThreadIndexing, 2, 256) {
-
-    int tid = threadIdx.x + blockIdx.x * blockDim.x;
-
-    // Each thread verifies its own index
-    GPU_EXPECT_TRUE(tid >= 0);
-    GPU_EXPECT_TRUE(tid < 512);
-
-    // Test thread cooperation
-    __shared__ int shared_data[256];
-    shared_data[threadIdx.x] = threadIdx.x;
-    __syncthreads();
-
-    if (threadIdx.x == 0) {
-        GPU_EXPECT_EQ(shared_data[0], 0);
-        GPU_EXPECT_EQ(shared_data[255], 255);
+```cuda
+GPU_TEST_CFG(ConfiguredTest, ParallelSum, dim3(1), dim3(32)) {
+    // Test code using 32 threads
+    int tid = threadIdx.x;
+    if (tid < 10) {
+        float value = compute_sum(float(tid), float(tid * 2));
+        GPU_EXPECT_NEAR(value, float(tid * 3), 1e-5f);
     }
 }
 ```
 
-### **5.3.3 GPU_TEST_F with Fixtures**
+### 3. GPU_TEST_F - Fixture-based Test
+Test using a fixture class that provides setup/teardown and device context.
 
-For complex tests requiring setup/teardown:
-
-```cpp
-class VectorAddFixture : public ::testing::Test {
-public:
+```cuda
+struct ReductionFixture : ::testing::Test {
     struct DeviceView {
-        float* a;
-        float* b;
-        float* c;
-        int n;
+        float* data;
+        float* result;
+        int size;
     };
 
-protected:
-    void SetUp() override {
-        n = 1024;
-        size_t size = n * sizeof(float);
-
-        // Allocate unified memory
-        cudaMallocManaged(&d_view, sizeof(DeviceView));
-        cudaMallocManaged(&d_view->a, size);
-        cudaMallocManaged(&d_view->b, size);
-        cudaMallocManaged(&d_view->c, size);
-        d_view->n = n;
-
-        // Initialize data
-        for (int i = 0; i < n; i++) {
-            d_view->a[i] = i;
-            d_view->b[i] = i * 2;
-        }
-    }
-
-    void TearDown() override {
-        cudaFree(d_view->a);
-        cudaFree(d_view->b);
-        cudaFree(d_view->c);
-        cudaFree(d_view);
-    }
-
+    // Setup device memory and context
+    void SetUp() override { /* ... */ }
+    void TearDown() override { /* ... */ }
     const DeviceView* device_view() const { return d_view; }
-
-    GpuLaunchCfg launch_cfg() const {
-        return MakeLaunchCfg((n + 255) / 256, 256);
-    }
-
-private:
-    DeviceView* d_view;
-    int n;
+    GpuLaunchCfg launch_cfg() const { /* ... */ }
 };
 
-GPU_TEST_F(VectorAddFixture, VectorAddition) {
-    int idx = threadIdx.x + blockIdx.x * blockDim.x;
-
-    if (idx < _ctx->n) {
-        _ctx->c[idx] = _ctx->a[idx] + _ctx->b[idx];
-
-        // Verify result
-        float expected = idx + idx * 2;
-        GPU_EXPECT_NEAR(_ctx->c[idx], expected, 0.001f);
+GPU_TEST_F(ReductionFixture, SumElements) {
+    // Access fixture data via _ctx pointer
+    int tid = threadIdx.x;
+    if (tid < _ctx->size) {
+        float value = _ctx->data[tid];
+        GPU_EXPECT_NEAR(value, 1.0f, 1e-5f);
     }
 }
 ```
 
----
+### 4. GPU_TEST_P - Parameterized Test
+Test that runs multiple times with different parameter values.
 
-## **5.4 Available Device Assertions**
-
-Inside device test bodies, you can use:
-
-| Macro | Description | Example |
-|-------|-------------|---------|
-| `GPU_EXPECT_TRUE(cond)` | Check condition is true | `GPU_EXPECT_TRUE(x > 0)` |
-| `GPU_ASSERT_TRUE(cond)` | Assert (stops test on failure) | `GPU_ASSERT_TRUE(ptr != nullptr)` |
-| `GPU_EXPECT_EQ(a, b)` | Check equality | `GPU_EXPECT_EQ(result, 42)` |
-| `GPU_EXPECT_NEAR(a, b, tol)` | Check floating-point near-equality | `GPU_EXPECT_NEAR(pi, 3.14159, 0.001)` |
-
-### **5.4.1 Grid-Stride Loop Helper**
-
-For testing over large datasets:
-
-```cpp
-GPU_TEST_CFG(LargeDataTest, ProcessArray, 256, 256) {
-
-    const int N = 1000000;
-
-    GPU_FOR_ALL(i, N) {
-        // This loop handles any N with any grid/block size
-        int value = i * 2;
-        GPU_EXPECT_TRUE(value == i + i);
-    }
+```cuda
+GPU_TEST_P(ParameterizedTest, AddValues) {
+    float param = _param;  // Access parameter
+    float result = compute_sum(param, param);
+    GPU_EXPECT_NEAR(result, param * 2.0f, 1e-5f);
 }
+
+GPU_INSTANTIATE_TEST_SUITE_P(Values, ParameterizedTest, AddValues,
+    ::testing::Values(1.0f, 2.0f, 3.0f, 5.0f, 10.0f));
 ```
 
----
+## Building
 
-## **5.5 Best Practices**
-
-### **5.5.1 Error Checking Pattern**
-
-Always check both launch and execution errors:
-
-```cpp
-TEST(KernelTest, ProperErrorChecking) {
-    kernel<<<grid, block>>>(...);
-
-    // Check launch error
-    cudaError_t launchErr = cudaGetLastError();
-    ASSERT_EQ(launchErr, cudaSuccess)
-        << "Launch failed: " << cudaGetErrorString(launchErr);
-
-    // Check execution error
-    cudaError_t execErr = cudaDeviceSynchronize();
-    ASSERT_EQ(execErr, cudaSuccess)
-        << "Execution failed: " << cudaGetErrorString(execErr);
-}
-```
-
-### **5.5.2 Memory Management**
-
-Use RAII or fixtures for automatic cleanup:
-
-```cpp
-class CudaMemory {
-    void* ptr = nullptr;
-    size_t size = 0;
-public:
-    CudaMemory(size_t s) : size(s) {
-        cudaMalloc(&ptr, size);
-    }
-    ~CudaMemory() {
-        if (ptr) cudaFree(ptr);
-    }
-    void* get() { return ptr; }
-};
-
-TEST(MemoryTest, RAIIPattern) {
-    CudaMemory mem(1024);
-    ASSERT_NE(mem.get(), nullptr);
-    // Automatic cleanup on scope exit
-}
-```
-
-### **5.5.3 Test Organization**
-
-- Group related tests in test suites
-- Use descriptive test names
-- Test both success and failure cases
-- Verify edge cases and boundary conditions
-
----
-
-## **5.6 Running the Examples**
-
-This tutorial includes complete examples:
-
-1. **host_test.cu** - Host-level testing examples
-2. **device_test.cu** - Device-level testing with GPU_TEST macros
-3. **CMakeLists.txt** - Build configuration
-
-### Build and Run:
+The project is built as part of the parent CUDA exercise project:
 
 ```bash
-cd build
-cmake ..
-make cuda_unit_test
-./10.cuda_basic/15.unit_test/cuda_unit_test
+# From the root cuda_exercise directory
+cmake -B build -S .
+cmake --build build --target 15_Unit_Testing_test
 ```
 
-### Expected Output:
+## Running Tests
+
+```bash
+# List all tests
+./build/10.cuda_basic/15.Unit\ Testing/15_Unit_Testing_test --gtest_list_tests
+
+# Run all tests
+./build/10.cuda_basic/15.Unit\ Testing/15_Unit_Testing_test
+
+# Run specific test
+./build/10.cuda_basic/15.Unit\ Testing/15_Unit_Testing_test --gtest_filter="SimpleDeviceTest.*"
+```
+
+## Test Output
 
 ```
-[==========] Running 12 tests from 4 test suites.
-[----------] Global test environment set-up.
-[----------] 3 tests from HostLevel
-[ RUN      ] HostLevel.DeviceDetection
-[       OK ] HostLevel.DeviceDetection (0 ms)
-[ RUN      ] HostLevel.MemoryOperations
-[       OK ] HostLevel.MemoryOperations (1 ms)
-[ RUN      ] HostLevel.KernelLaunch
-[       OK ] HostLevel.KernelLaunch (2 ms)
-[----------] 3 tests from HostLevel (3 ms total)
-
-[----------] 4 tests from DeviceLevel
-[ RUN      ] DeviceLevel.BasicMath
-[       OK ] DeviceLevel.BasicMath (1 ms)
+[==========] Running 11 tests from 6 test suites.
+[----------] 1 test from SimpleDeviceTest
+[ RUN      ] SimpleDeviceTest.ComputeSum
+[       OK ] SimpleDeviceTest.ComputeSum (5 ms)
+[----------] 1 test from ConfiguredTest
+[ RUN      ] ConfiguredTest.ParallelSum
+[       OK ] ConfiguredTest.ParallelSum (0 ms)
+[----------] 1 test from ReductionFixture
+[ RUN      ] ReductionFixture.SumElements
+[       OK ] ReductionFixture.SumElements (0 ms)
+[----------] 5 tests from Values/ParameterizedTest_AddValues_TestBase
+[ RUN      ] Values/ParameterizedTest_AddValues_TestBase.Test/0
+[       OK ] Values/ParameterizedTest_AddValues_TestBase.Test/0 (0 ms)
 ...
-[==========] 12 tests from 4 test suites ran. (15 ms total)
-[  PASSED  ] 12 tests.
+[----------] 2 tests from HostIntegrationTest
+[ RUN      ] HostIntegrationTest.VectorAdd2D
+[       OK ] HostIntegrationTest.VectorAdd2D (1 ms)
+[ RUN      ] HostIntegrationTest.ReduceSum2D
+[       OK ] HostIntegrationTest.ReduceSum2D (0 ms)
+[==========] 11 tests from 6 test suites ran. (10 ms total)
+[  PASSED  ] 11 tests.
 ```
 
----
+## GPU Test Macros Reference
 
-## **Summary**
+| Macro | Purpose | Launch Config |
+|-------|---------|---------------|
+| `GPU_TEST(Suite, Name)` | Simple device test | Default <<<1,1>>> |
+| `GPU_TEST_CFG(Suite, Name, grid, block, ...)` | Test with explicit config | User-specified |
+| `GPU_TEST_F(Fixture, Name)` | Fixture-based test | From fixture's launch_cfg() |
+| `GPU_TEST_P(Suite, Name)` | Parameterized test | Default <<<1,1>>> |
 
-You've learned how to:
-- ✅ Write host-level tests for CUDA API calls
-- ✅ Create device-level tests that run on GPU
-- ✅ Use fixtures for complex test scenarios
-- ✅ Handle CUDA-specific testing challenges
-- ✅ Organize and run comprehensive CUDA test suites
+## Test Assertions Available in Device Code
 
-Unit testing ensures your CUDA code is reliable, maintainable, and performs as expected across different configurations and inputs.
+- `GPU_EXPECT_TRUE(condition)` - Check if condition is true
+- `GPU_EXPECT_EQ(a, b)` - Check if values are equal
+- `GPU_EXPECT_NEAR(a, b, tolerance)` - Check if values are within tolerance
+
+## Key Features
+
+1. **Direct GPU Testing**: Tests run directly on the GPU, allowing verification of device functions and kernels
+2. **Fixture Support**: Setup and teardown device memory with fixture classes
+3. **Parameterized Testing**: Run the same test with different input values
+4. **Custom Launch Configurations**: Control grid and block dimensions for tests
+5. **Integration with GTest**: Seamless integration with Google Test framework
+6. **Host Integration Tests**: Traditional CPU-side tests for kernel verification
+
+## Best Practices
+
+1. **Use appropriate test type**:
+   - GPU_TEST for simple device function tests
+   - GPU_TEST_CFG when you need specific thread configurations
+   - GPU_TEST_F for tests requiring complex setup/teardown
+   - GPU_TEST_P for testing with multiple input values
+
+2. **Memory management**:
+   - Always check CUDA error codes
+   - Free allocated memory in teardown
+   - Use RAII patterns where possible
+
+3. **Test organization**:
+   - Group related tests in test suites
+   - Use descriptive test names
+   - Test both success and edge cases
+
+4. **Synchronization**:
+   - Remember that GPU tests are asynchronous
+   - Use proper synchronization for host tests
+   - Check both launch and execution errors

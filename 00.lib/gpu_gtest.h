@@ -553,7 +553,6 @@ inline ::testing::AssertionResult LaunchCpuGeneratorTestCount(
 
     // We can't call the CUDA kernel directly from host
     // Instead, we need to launch it properly on the device for counting
-    GpuTestResult h{};
     GpuTestResult* d = nullptr;
     cudaMalloc(&d, sizeof(GpuTestResult));
     cudaMemset(d, 0, sizeof(GpuTestResult));

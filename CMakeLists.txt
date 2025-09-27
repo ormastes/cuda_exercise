@@ -81,4 +81,4 @@ add_subdirectory(00.demo)
 add_subdirectory(00.demo_lib)
 add_subdirectory(00.test_lib)
 add_subdirectory(10.cuda_basic)
-# add_subdirectory(20.intermediate_cuda)  # Uncomment when intermediate examples are implemented
+add_subdirectory(20.cuda_intermediate)

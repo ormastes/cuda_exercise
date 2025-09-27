@@ -56,7 +56,7 @@ if(BUILD_TESTING)
         COMMAND ${PROJECT_NAME}
     )
     set_tests_properties(${PROJECT_NAME}_test PROPERTIES
-        PASS_REGULAR_EXPRESSION "Demo Complete"
+        PASS_REGULAR_EXPRESSION "CUDA Error Handling and Debugging Demonstration"
         TIMEOUT 30
     )
 endif()

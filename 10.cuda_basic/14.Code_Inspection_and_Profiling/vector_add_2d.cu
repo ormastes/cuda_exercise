@@ -9,30 +9,6 @@ __device__ float square(float x) {
     return x * x;
 }
 
-__global__ void reduceSum(const float* input, float* output, int N) {
-    extern __shared__ float sdata[];
-
-    unsigned int tid = threadIdx.x;
-    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-    // Load data to shared memory
-    sdata[tid] = (i < N) ? input[i] : 0.0f;
-    __syncthreads();
-
-    // Reduction in shared memory
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
-        if (tid < s) {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
-
-    // Write result for this block to global memory
-    if (tid == 0) {
-        atomicAdd(output, sdata[0]);
-    }
-}
-
 // Good memory coalescing pattern - threads access consecutive memory
 __global__ void vectorAdd2D_Coalesced(const float* A, const float* B, float* C, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -55,6 +31,36 @@ __global__ void vectorAdd2D_Strided(const float* A, const float* B, float* C, in
     }
 }
 
+// Optimized strided access using shared memory to improve coalescing
+__global__ void vectorAdd2D_StridedOptimized(const float* A, const float* B, float* C,
+                                             int width, int height) {
+    __shared__ float tile_A[16][17];  // +1 to avoid bank conflicts
+    __shared__ float tile_B[16][17];
+
+    int tx = threadIdx.x;
+    int ty = threadIdx.y;
+    int x = blockIdx.x * blockDim.x + tx;
+    int y = blockIdx.y * blockDim.y + ty;
+
+    // Coalesced load into shared memory (row-major)
+    if (x < width && y < height) {
+        int idx_row_major = y * width + x;
+        tile_A[ty][tx] = A[idx_row_major];
+        tile_B[ty][tx] = B[idx_row_major];
+    } else {
+        tile_A[ty][tx] = 0.0f;
+        tile_B[ty][tx] = 0.0f;
+    }
+    __syncthreads();
+
+    // Now compute using the values from shared memory
+    // This converts the strided global memory access to efficient shared memory access
+    if (x < width && y < height) {
+        int idx_col_major = x * height + y;  // Column-major index for output
+        C[idx_col_major] = square(tile_A[ty][tx]) + tile_B[ty][tx];
+    }
+}
+
 // Example with potential out-of-bounds access for debugging demos
 __global__ void vectorAdd2D_WithBug(const float* A, const float* B, float* C, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -63,6 +69,83 @@ __global__ void vectorAdd2D_WithBug(const float* A, const float* B, float* C, in
     // Bug: Missing boundary check can cause out-of-bounds access
     int i = y * width + x;
     C[i] = square(A[i]) + B[i];  // Potential out-of-bounds when x >= width or y >= height
+}
+
+__global__ void reduceSum(const float* input, float* output, int N) {
+    extern __shared__ float sdata[];
+
+    unsigned int tid = threadIdx.x;
+    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    // Debug helper: volatile pointer to make shared memory visible in debugger
+    //volatile float* debug_sdata = sdata;
+
+    // Load data to shared memory
+    sdata[tid] = (i < N) ? input[i] : 0.0f;
+    __syncthreads();
+
+    // Reduction in shared memory
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+        if (tid < s) {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    // Write result for this block to global memory
+    if (tid == 0) {
+        atomicAdd(output, sdata[0]);
+    }
+}
+
+// Optimized reduction for strided access patterns
+__global__ void reduceSum_Strided(const float* input, float* output, int N, int stride) {
+    extern __shared__ float sdata[];
+
+    unsigned int tid = threadIdx.x;
+    unsigned int i = blockIdx.x * blockDim.x * 2 + threadIdx.x;  // Grid-stride loop
+
+    // Coalesced load with grid-stride loop to handle strided patterns better
+    float sum = 0.0f;
+
+    // First, accumulate multiple elements per thread (coalesced reads)
+    while (i < N) {
+        sum += input[i];
+        if (i + blockDim.x < N)
+            sum += input[i + blockDim.x];  // Load two elements per thread
+        i += gridDim.x * blockDim.x * 2;  // Grid-stride loop
+    }
+
+    // Store in shared memory
+    sdata[tid] = sum;
+    __syncthreads();
+
+    // Reduction in shared memory (unrolled for better performance)
+    if (blockDim.x >= 512) {
+        if (tid < 256) { sdata[tid] += sdata[tid + 256]; } __syncthreads();
+    }
+    if (blockDim.x >= 256) {
+        if (tid < 128) { sdata[tid] += sdata[tid + 128]; } __syncthreads();
+    }
+    if (blockDim.x >= 128) {
+        if (tid < 64) { sdata[tid] += sdata[tid + 64]; } __syncthreads();
+    }
+
+    // Warp-level reduction (no sync needed within warp)
+    if (tid < 32) {
+        volatile float* vdata = sdata;
+        if (blockDim.x >= 64) vdata[tid] += vdata[tid + 32];
+        if (blockDim.x >= 32) vdata[tid] += vdata[tid + 16];
+        if (blockDim.x >= 16) vdata[tid] += vdata[tid + 8];
+        if (blockDim.x >= 8) vdata[tid] += vdata[tid + 4];
+        if (blockDim.x >= 4) vdata[tid] += vdata[tid + 2];
+        if (blockDim.x >= 2) vdata[tid] += vdata[tid + 1];
+    }
+
+    // Write result for this block to global memory
+    if (tid == 0) {
+        atomicAdd(output, sdata[0]);
+    }
 }
 
 void testVectorAdd2D_Coalesced() {
@@ -177,6 +260,110 @@ void testVectorAdd2D_Strided() {
     nvtxRangePop();
 }
 
+// Performance comparison function
+void compareMemoryPatterns() {
+    nvtxRangePush("Memory Pattern Comparison");
+
+    int width = 1024;
+    int height = 1024;
+    int N = width * height;
+    size_t size = N * sizeof(float);
+
+    // Allocate memory
+    float *h_A = (float*)malloc(size);
+    float *h_B = (float*)malloc(size);
+    float *h_C = (float*)malloc(size);
+
+    // Initialize data
+    for (int i = 0; i < N; ++i) {
+        h_A[i] = static_cast<float>(i % 1000);
+        h_B[i] = static_cast<float>((2 * i) % 1000);
+    }
+
+    float *d_A, *d_B, *d_C;
+    CHECK_CUDA(cudaMalloc(&d_A, size));
+    CHECK_CUDA(cudaMalloc(&d_B, size));
+    CHECK_CUDA(cudaMalloc(&d_C, size));
+
+    CHECK_CUDA(cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice));
+
+    dim3 threads(16, 16);
+    dim3 blocks((width + 15)/16, (height + 15)/16);
+
+    // Create events for timing
+    cudaEvent_t start, stop;
+    CHECK_CUDA(cudaEventCreate(&start));
+    CHECK_CUDA(cudaEventCreate(&stop));
+
+    // Warm-up runs
+    vectorAdd2D_Coalesced<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
+    CHECK_CUDA(cudaDeviceSynchronize());
+
+    // Measure coalesced access
+    CHECK_CUDA(cudaEventRecord(start));
+    for (int i = 0; i < 100; i++) {
+        vectorAdd2D_Coalesced<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
+    }
+    CHECK_CUDA(cudaEventRecord(stop));
+    CHECK_CUDA(cudaEventSynchronize(stop));
+
+    float coalescedTime = 0;
+    CHECK_CUDA(cudaEventElapsedTime(&coalescedTime, start, stop));
+    coalescedTime /= 100.0f;
+
+    // Measure strided access
+    CHECK_CUDA(cudaEventRecord(start));
+    for (int i = 0; i < 100; i++) {
+        vectorAdd2D_Strided<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
+    }
+    CHECK_CUDA(cudaEventRecord(stop));
+    CHECK_CUDA(cudaEventSynchronize(stop));
+
+    float stridedTime = 0;
+    CHECK_CUDA(cudaEventElapsedTime(&stridedTime, start, stop));
+    stridedTime /= 100.0f;
+
+    // Measure optimized strided access
+    CHECK_CUDA(cudaEventRecord(start));
+    for (int i = 0; i < 100; i++) {
+        vectorAdd2D_StridedOptimized<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
+    }
+    CHECK_CUDA(cudaEventRecord(stop));
+    CHECK_CUDA(cudaEventSynchronize(stop));
+
+    float stridedOptimizedTime = 0;
+    CHECK_CUDA(cudaEventElapsedTime(&stridedOptimizedTime, start, stop));
+    stridedOptimizedTime /= 100.0f;
+
+    // Calculate bandwidth
+    float gb_transferred = (N * sizeof(float) * 3) / (1024.0f * 1024.0f * 1024.0f); // 2 reads + 1 write
+
+    std::cout << "\n=== Memory Pattern Performance Comparison ===" << std::endl;
+    std::cout << "Array size: " << width << "x" << height << " (" << N << " elements)" << std::endl;
+    std::cout << "Coalesced access time:        " << coalescedTime << " ms" << std::endl;
+    std::cout << "Strided access time:          " << stridedTime << " ms" << std::endl;
+    std::cout << "Strided optimized time:       " << stridedOptimizedTime << " ms" << std::endl;
+    std::cout << "\nPerformance ratios:" << std::endl;
+    std::cout << "Strided vs Coalesced:         " << stridedTime / coalescedTime << "x slower" << std::endl;
+    std::cout << "Optimized vs Original Strided: " << stridedTime / stridedOptimizedTime << "x faster" << std::endl;
+    std::cout << "Optimized vs Coalesced:        " << stridedOptimizedTime / coalescedTime << "x slower" << std::endl;
+    std::cout << "\nEffective Bandwidth:" << std::endl;
+    std::cout << "Coalesced:        " << gb_transferred / (coalescedTime / 1000.0f) << " GB/s" << std::endl;
+    std::cout << "Strided:          " << gb_transferred / (stridedTime / 1000.0f) << " GB/s" << std::endl;
+    std::cout << "Strided Optimized: " << gb_transferred / (stridedOptimizedTime / 1000.0f) << " GB/s" << std::endl;
+
+    // Cleanup
+    CHECK_CUDA(cudaEventDestroy(start));
+    CHECK_CUDA(cudaEventDestroy(stop));
+    CHECK_CUDA(cudaFree(d_A));
+    CHECK_CUDA(cudaFree(d_B));
+    CHECK_CUDA(cudaFree(d_C));
+    free(h_A); free(h_B); free(h_C);
+
+    nvtxRangePop();
+}
+
 void testMemoryError() {
     nvtxRangePush("testMemoryError");
 
@@ -236,6 +423,7 @@ void testReduceSum() {
     const int N = 1024 * 1024;
     const int blockSize = 256;
     const int numBlocks = (N + blockSize - 1) / blockSize;
+    const int numBlocksOptimized = (N + blockSize * 2 - 1) / (blockSize * 2);  // For optimized version
 
     size_t size = N * sizeof(float);
 
@@ -274,6 +462,20 @@ void testReduceSum() {
     CHECK_CUDA(cudaDeviceSynchronize());
     nvtxRangePop();
 
+    // Test optimized version for comparison
+    float h_output_optimized = 0.0f;
+    float *d_output_optimized;
+    CHECK_CUDA(cudaMalloc(&d_output_optimized, sizeof(float)));
+    CHECK_CUDA(cudaMemset(d_output_optimized, 0, sizeof(float)));
+
+    nvtxRangePush("Reduce: Optimized Kernel Execution");
+    reduceSum_Strided<<<numBlocksOptimized, blockSize, sharedMemSize>>>(d_input, d_output_optimized, N, 1);
+    CHECK_CUDA(cudaDeviceSynchronize());
+    nvtxRangePop();
+
+    CHECK_CUDA(cudaMemcpy(&h_output_optimized, d_output_optimized, sizeof(float), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaFree(d_output_optimized));
+
     // Copy result back to host
     nvtxRangePush("Reduce: D2H Copy");
     CHECK_CUDA(cudaMemcpy(&h_output, d_output, sizeof(float), cudaMemcpyDeviceToHost));
@@ -282,7 +484,9 @@ void testReduceSum() {
     // Check result
     std::cout << "ReduceSum: Expected sum = " << expected_sum << std::endl;
     std::cout << "ReduceSum: Computed sum = " << h_output << std::endl;
+    std::cout << "ReduceSum: Optimized sum = " << h_output_optimized << std::endl;
     std::cout << "ReduceSum: Error = " << std::abs(h_output - expected_sum) << std::endl;
+    std::cout << "ReduceSum: Optimized Error = " << std::abs(h_output_optimized - expected_sum) << std::endl;
 
     // Cleanup
     nvtxRangePush("Reduce: Cleanup");
@@ -317,11 +521,14 @@ int main(int argc, char* argv[]) {
     // Parse command line arguments
     bool runMemoryError = false;
     bool runStrided = false;
+    bool runComparison = false;
     for (int i = 1; i < argc; ++i) {
         if (std::string(argv[i]) == "--memory-error") {
             runMemoryError = true;
         } else if (std::string(argv[i]) == "--strided") {
             runStrided = true;
+        } else if (std::string(argv[i]) == "--compare") {
+            runComparison = true;
         }
     }
 
@@ -341,6 +548,11 @@ int main(int argc, char* argv[]) {
     testReduceSum();
     std::cout << std::endl;
 
+    if (runComparison) {
+        compareMemoryPatterns();
+        std::cout << std::endl;
+    }
+
     if (runMemoryError) {
         testMemoryError();
         std::cout << std::endl;
@@ -351,6 +563,7 @@ int main(int argc, char* argv[]) {
     std::cout << "2. Use 'ncu --set full ./vector_add_2d' for detailed kernel analysis" << std::endl;
     std::cout << "3. Use 'compute-sanitizer ./vector_add_2d --memory-error' to detect memory issues" << std::endl;
     std::cout << "4. Compare coalesced vs strided with './vector_add_2d --strided' in profiler" << std::endl;
+    std::cout << "5. Run './vector_add_2d --compare' to see performance comparison" << std::endl;
 
     nvtxRangePop();
     return 0;

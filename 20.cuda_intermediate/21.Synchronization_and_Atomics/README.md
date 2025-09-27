@@ -1,10 +1,10 @@
-# 🔒 Part 10: Synchronization and Atomics
+# 🔒 Part 21: Synchronization and Atomics
 
 **Goal**: Master advanced thread synchronization, atomic operations, and lock-free algorithms in CUDA.
 
 ---
 
-## **10.1 Overview**
+## **21.1 Overview**
 
 Synchronization and atomic operations are essential for coordinating parallel threads and maintaining data consistency in CUDA applications. This section covers:
 
@@ -17,7 +17,7 @@ Synchronization and atomic operations are essential for coordinating parallel th
 
 ---
 
-## **10.2 Synchronization Primitives**
+## **21.2 Synchronization Primitives**
 
 ### **Thread Synchronization Levels**
 
@@ -53,7 +53,7 @@ __global__ void kernel() {
 
 ---
 
-## **10.3 Atomic Operations**
+## **21.3 Atomic Operations**
 
 ### **Supported Atomic Functions**
 
@@ -112,7 +112,7 @@ __device__ float atomicMaxFloat(float* address, float val) {
 
 ---
 
-## **10.4 Memory Fences**
+## **21.4 Memory Fences**
 
 ### **Fence Types**
 
@@ -143,7 +143,7 @@ __global__ void consumer() {
 
 ---
 
-## **10.5 Warp-Level Primitives**
+## **21.5 Warp-Level Primitives**
 
 ### **Warp Shuffle Functions**
 
@@ -184,7 +184,7 @@ __global__ void warp_vote_kernel() {
 
 ---
 
-## **10.6 Cooperative Groups**
+## **21.6 Cooperative Groups**
 
 ### **API Overview**
 
@@ -233,7 +233,7 @@ cudaLaunchCooperativeKernel(
 
 ---
 
-## **10.7 Lock-Free Data Structures**
+## **21.7 Lock-Free Data Structures**
 
 ### **Lock-Free Stack**
 
@@ -274,7 +274,7 @@ class LockFreeStack {
 
 ---
 
-## **10.8 Performance Considerations**
+## **21.8 Performance Considerations**
 
 ### **Atomic Operation Performance**
 
@@ -310,7 +310,7 @@ if (laneId == 0) atomicAdd(&result, warp_sum);
 
 ---
 
-## **10.9 Running the Examples**
+## **21.9 Running the Examples**
 
 ### **Building**
 ```bash
@@ -332,31 +332,31 @@ ctest -R 10_Synchronization_and_Atomics
 
 ---
 
-## **10.10 Profiling and Analysis**
+## **21.10 Profiling and Analysis**
 
 ### **Atomic Operations Analysis**
 ```bash
-make 10_Synchronization_and_Atomics_atomic_analysis
+ninja 21_Synchronization_and_Atomics_atomic_analysis
 ```
 
 ### **Synchronization Overhead**
 ```bash
-make 10_Synchronization_and_Atomics_sync_overhead
+ninja 21_Synchronization_and_Atomics_sync_overhead
 ```
 
 ### **Memory Fence Impact**
 ```bash
-make 10_Synchronization_and_Atomics_fence_analysis
+ninja 21_Synchronization_and_Atomics_fence_analysis
 ```
 
 ### **Lock Contention Analysis**
 ```bash
-make 10_Synchronization_and_Atomics_lock_contention
+ninja 21_Synchronization_and_Atomics_lock_contention
 ```
 
 ---
 
-## **10.11 Expected Output**
+## **21.11 Expected Output**
 
 ```
 Using device: NVIDIA GeForce RTX 3080
@@ -401,7 +401,7 @@ Config (1024 threads, 10 blocks): 16.78 ms, counter = 1024000
 
 ---
 
-## **10.12 Common Issues and Solutions**
+## **21.12 Common Issues and Solutions**
 
 ### **Problem 1: Deadlock with __syncthreads()**
 **Symptoms**: Kernel hangs indefinitely
@@ -433,7 +433,7 @@ if (threadIdx.x < 128) {
 
 ---
 
-## **10.13 Best Practices**
+## **21.13 Best Practices**
 
 1. **Minimize Synchronization**
    - Synchronization is expensive
@@ -462,7 +462,7 @@ if (threadIdx.x < 128) {
 
 ---
 
-## **10.14 Advanced Topics**
+## **21.14 Advanced Topics**
 
 ### **Persistent Threads**
 ```cpp
@@ -491,7 +491,7 @@ __device__ int global_lock;
 
 ---
 
-## **10.15 Exercises**
+## **21.15 Exercises**
 
 ### **Exercise 1: Custom Atomic Operation**
 Implement atomic multiply for floats using CAS
@@ -511,7 +511,7 @@ Compare performance of different reduction strategies:
 
 ---
 
-## **10.16 References**
+## **21.16 References**
 
 - [CUDA Programming Guide - Synchronization](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#synchronization-functions)
 - [Cooperative Groups Programming Guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#cooperative-groups)

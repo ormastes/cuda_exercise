@@ -78,10 +78,18 @@ Multiple streams process different parts of data, then synchronize.
 
 ## Examples in This Section
 
+### Host-Side Async Operations
 1. **basic_streams.cu**: Introduction to stream creation and async operations
 2. **overlap_transfer_compute.cu**: Overlapping data transfers with computation
 3. **multi_stream_pipeline.cu**: Pipeline pattern for processing large datasets
 4. **stream_callback.cu**: Using stream callbacks for CPU-GPU coordination
+
+### Device-Side Async Memory (CUDA 11.0+)
+5. **device_async/**: Advanced async memory operations within kernels
+   - CUDA barriers and pipelines
+   - Device-side memcpy_async
+   - Producer-consumer patterns
+   - Double buffering techniques
 
 ## Hardware Requirements
 
@@ -182,7 +190,7 @@ cudaStreamEndCapture(stream, &graph);
 # Build all examples
 mkdir build && cd build
 cmake ..
-make
+ninja
 
 # Run individual examples
 ./basic_streams

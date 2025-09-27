@@ -1,10 +1,10 @@
-# 🐞 Part 3: Debugging CUDA in VSCode
+# 🐞 Part 13: Debugging CUDA in VSCode
 
 **Goal**: Master GPU debugging techniques using NVIDIA Nsight and cuda-gdb in VSCode.
 
 ---
 
-## **3.1 Overview of CUDA Debugging**
+## **13.1 Overview of CUDA Debugging**
 
 CUDA debugging allows you to:
 - Set breakpoints inside GPU kernels
@@ -15,9 +15,9 @@ CUDA debugging allows you to:
 
 ---
 
-## **3.2 VSCode Debug Configuration**
+## **13.2 VSCode Debug Configuration**
 
-### **3.2.1 Required Extensions**
+### **13.2.1 Required Extensions**
 
 * [x] **NVIDIA Nsight Visual Studio Code Edition** - Search for "Nsight" in VSCode Extensions marketplace
 * [x] CMake Tools (for CMake integration)
@@ -31,7 +31,7 @@ CUDA debugging allows you to:
 - Manual block and thread coordinate selection
 - Variable and call-stack inspection
 
-### **3.2.2 Debug Launch Configuration**
+### **13.2.2 Debug Launch Configuration**
 
 Create or update `.vscode/launch.json` in your workspace root to configure CUDA debugging:
 
@@ -67,7 +67,110 @@ Create or update `.vscode/launch.json` in your workspace root to configure CUDA 
 
 ---
 
-## **3.3 Debugging Workflow**
+## **13.3 Build Configuration for Analysis**
+
+### **13.3.1 CMakeLists.txt with Profiling Support**
+
+**Updated Implementation from Root CMakeLists.txt:**
+
+```cmake
+# Compiler flags for different build types
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(
+        "$<$<COMPILE_LANGUAGE:CUDA>:-g;-Gl-O0>"
+        "$<$<COMPILE_LANGUAGE:CXX>:-g3;-O0>"
+    )
+    set(CUDA_BASIC_LIB CUDA::cudart)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Profile")
+    # Profile flags: Optimized with debug info
+    add_compile_options(
+        "$<$<COMPILE_LANGUAGE:CUDA>:-g;-G;-O2>"
+        "$<$<COMPILE_LANGUAGE:CXX>:-g3;-O2>"
+    )
+    set(CUDA_BASIC_LIB CUDA::cudart)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    # Release flags: Optimize for performance
+    add_compile_options(
+        "$<$<COMPILE_LANGUAGE:CUDA>:-g;-G;-O3;-use_fast_math>"
+        "$<$<COMPILE_LANGUAGE:CXX>:-g3;-O3>"
+    )
+    set(CUDA_BASIC_LIB CUDA::cudart)
+endif()
+
+```
+
+**Key Improvements:**
+1. **Build Type Separation**: Different optimization levels for Debug, Profile, and Release builds
+2. **Language-Specific Flags**: Separate compile options for CUDA and C++ code using generator expressions
+3. **Debug Build (`-G -g -O0`)**: Full debugging symbols with no optimization for best debugging experience
+4. **Profile Build (`-G -g -O2`)**: Balanced optimization with debug info for performance analysis
+5. **Release Build (`-O3 -use_fast_math`)**: Maximum optimization with fast math for production performance
+6. **Generator Expressions**: Use `$<$<COMPILE_LANGUAGE:CUDA>>` for language-specific flags
+
+### **13.3.2 Building with Different Configurations Using Ninja**
+
+```bash
+# Debug build - Full debugging capabilities
+mkdir build_debug && cd build_debug
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ..
+ninja
+
+# Profile build - For performance analysis with debug info
+mkdir build_profile && cd build_profile
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Profile ..
+ninja
+
+# Release build - Optimized for production
+mkdir build_release && cd build_release
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+ninja
+
+# Clean and rebuild
+ninja clean && ninja
+
+# Verbose build to see actual compiler commands
+ninja -v
+```
+
+### **13.3.3 Compiler Flags Reference**
+
+| Flag | Purpose | Debug | Profile | Release |
+|------|---------|-------|---------|---------|
+| `-G` | Generate debug info for device code | ✅ | ✅ | ❌ |
+| `-g` | Generate debug info for host code | ✅ | ✅ | Optional |
+| `-O0` | Disable all optimizations | ✅ | ❌ | ❌ |
+| `-O2` | Moderate optimization level | ❌ | ✅ | ❌ |
+| `-O3` | Maximum optimization level | ❌ | ❌ | ✅ |
+| `-use_fast_math` | Enable fast math operations | ❌ | ❌ | ✅ |
+| `-lineinfo` | Embed line number information | ❌ | ✅ | ❌ |
+| `--ptxas-options=-v` | Show register and memory usage | Optional | ✅ | ❌ |
+
+### **13.3.4 Performance Impact of Debug Flags**
+
+**Debug vs Release Performance Comparison:**
+- Debug builds can be **10-100x slower** than release builds
+- The `-G` flag disables many GPU optimizations for debugging visibility
+- Device debug info significantly impacts kernel execution time
+- Host debug info (`-g`) has minimal runtime performance impact
+
+**Build Configuration Selection Guide:**
+| Scenario | Recommended Build | Rationale |
+|----------|-------------------|-----------|
+| **Bug Investigation** | Debug | Full variable visibility, accurate stepping |
+| **Performance Profiling** | Profile | Optimized code with line-level correlation |
+| **Production Deployment** | Release | Maximum performance, smallest binary size |
+| **Unit Testing** | Debug | Better error messages and stack traces |
+| **Benchmarking** | Release | Realistic performance measurements |
+
+**Ninja Build System Advantages:**
+- **Faster incremental builds** compared to Make
+- **Better parallelization** of build tasks
+- **Cleaner output** with progress indicators
+- **Automatic dependency detection** for CUDA files
+
+---
+
+## **13.4 Debugging Workflow**
 
 ### **Prerequisites**
 - Complete example code (`vector_add_2d.cu` in this directory)
@@ -106,9 +209,9 @@ Create or update `.vscode/launch.json` in your workspace root to configure CUDA 
 
 ---
 
-## **3.4 Debug Features and Commands**
+## **13.5 Debug Features and Commands**
 
-### **3.4.1 Breakpoint Types**
+### **13.5.1 Breakpoint Types**
 
 | Type | Description | Usage |
 |------|-------------|-------|
@@ -123,7 +226,7 @@ Create or update `.vscode/launch.json` in your workspace root to configure CUDA 
 - When a breakpoint is hit, the debugger automatically switches focus to that thread
 - Multiple threads hitting the same breakpoint will all pause
 
-### **3.4.2 Setting Conditional Breakpoints for CUDA**
+### **13.5.2 Setting Conditional Breakpoints for CUDA**
 
 To debug specific threads, use conditional breakpoints:
 
@@ -149,7 +252,7 @@ threadIdx.x == 0 || threadIdx.y == 0
 (threadIdx.x / 32) == 2
 ```
 
-### **3.4.3 Debug Controls**
+### **13.5.3 Debug Controls**
 
 | Control | Shortcut | Description |
 |---------|----------|-------------|
@@ -162,9 +265,9 @@ threadIdx.x == 0 || threadIdx.y == 0
 
 ---
 
-## **3.5 Thread and Block Navigation**
+## **13.6 Thread and Block Navigation**
 
-### **3.5.1 CUDA Focus Panel**
+### **13.6.1 CUDA Focus Panel**
 
 The CUDA Focus panel in VSCode shows:
 - Current thread coordinates (x, y, z)
@@ -172,7 +275,7 @@ The CUDA Focus panel in VSCode shows:
 - Warp information
 - Lane ID within warp
 
-### **3.5.2 Switching Between Threads - Multiple Methods**
+### **13.6.2 Switching Between Threads - Multiple Methods**
 
 **Important:** Thread switching allows you to inspect variables and execution state from different parallel threads.
 
@@ -210,7 +313,7 @@ The debugger can automatically change focus when different threads hit breakpoin
 - This allows debugging multiple threads without manual switching
 - Useful for catching race conditions or thread-specific issues
 
-### **3.5.3 Debugging Views in VSCode**
+### **13.6.3 Debugging Views in VSCode**
 
 When debugging CUDA with Nsight VSCode Edition, you use VSCode's standard debugging panels:
 
@@ -227,9 +330,9 @@ When debugging CUDA with Nsight VSCode Edition, you use VSCode's standard debugg
 
 ---
 
-## **3.6 Common Debugging Scenarios**
+## **13.7 Common Debugging Scenarios**
 
-### **3.6.1 Debugging Array Access**
+### **13.7.1 Debugging Array Access**
 
 **Example: Vector Addition 2D Kernel**
 ```cpp
@@ -257,7 +360,7 @@ __global__ void vectorAdd2D(const float* A, const float* B, float* C, int width,
 - Boundary conditions when `x` approaches `width` and `y` approaches `height`
 - Device function `square()` execution
 
-### **3.6.2 Debugging Race Conditions**
+### **13.7.2 Debugging Race Conditions**
 
 ```cpp
 // File: vector_add_2d.cu (included in this directory)
@@ -286,7 +389,7 @@ __global__ void reduceSum(const float* input, float* output, int N) {
 }
 ```
 
-### **3.6.3 Debugging Memory Errors**
+### **13.7.3 Debugging Memory Errors**
 
 Enable memory checking with cuda-memcheck:
 
@@ -312,9 +415,9 @@ Enable memory checking with cuda-memcheck:
 
 ---
 
-## **3.7 Debug Output and Logging**
+## **13.8 Debug Output and Logging**
 
-### **3.7.1 Using printf in Kernels**
+### **13.8.1 Using printf in Kernels**
 
 **Note:** printf in kernels requires compute capability 2.0 or higher.
 
@@ -341,7 +444,7 @@ __global__ void vectorAdd2D(const float* A, const float* B, float* C, int width,
 }
 ```
 
-### **3.7.2 Debug Console Output**
+### **13.8.2 Debug Console Output**
 
 The Debug Console in VSCode shows:
 - Program output (printf statements)
@@ -351,9 +454,9 @@ The Debug Console in VSCode shows:
 
 ---
 
-## **3.8 Performance Debugging**
+## **13.9 Performance Debugging**
 
-### **3.8.1 Identifying Performance Issues**
+### **13.9.1 Identifying Performance Issues**
 
 Use these techniques while debugging:
 
@@ -362,7 +465,7 @@ Use these techniques while debugging:
 3. **Branch Divergence**: Detect when threads in a warp take different paths
 4. **Synchronization Points**: Find unnecessary __syncthreads()
 
-### **3.8.2 Debug Build vs Release Build**
+### **13.9.2 Debug Build vs Release Build**
 
 | Aspect | Debug Build | Release Build |
 |--------|-------------|---------------|
@@ -373,7 +476,7 @@ Use these techniques while debugging:
 
 ---
 
-## **3.9 Troubleshooting Common Issues**
+## **13.10 Troubleshooting Common Issues**
 
 **Before debugging, ensure:**
 - NVIDIA GPU drivers are installed and up to date
@@ -403,9 +506,9 @@ Use these techniques while debugging:
 
 ---
 
-## **3.10 Advanced Debugging Tips**
+## **13.11 Advanced Debugging Tips**
 
-### **3.10.1 Using Guard Conditions for Thread-Specific Debugging**
+### **13.11.1 Using Guard Conditions for Thread-Specific Debugging**
 
 Add guard conditions in your kernel to create targeted debug points:
 
@@ -418,7 +521,7 @@ if (blockIdx.x == 1 && blockIdx.y == 0 && threadIdx.x == 0 && threadIdx.y == 0) 
 }
 ```
 
-### **3.10.2 Warp-Level Debugging**
+### **13.11.2 Warp-Level Debugging**
 
 Debug at warp granularity:
 
@@ -442,9 +545,10 @@ __global__ void reduceSum(const float* input, float* output, int N) {
 }
 ```
 
-### **3.10.3 Memory Fence Debugging**
+### **13.11.3 Memory Fence Debugging**
 
 Debug memory consistency issues:
+This may not happen on this example, but if you have memory synchronization issues, you can add memory fences to ensure visibility.
 
 ```cpp
 // Memory synchronization in reduceSum from vector_add_2d.cu
@@ -460,9 +564,57 @@ __global__ void reduceSum(const float* input, float* output, int N) {
 }
 ```
 
+### **13.11.4 Debugging extern __shared__ Memory**
+
+**⚠️ Important Limitation:** If you use `extern __shared__` memory, you will not see it as a named variable in CUDA debuggers like cuda-gdb.
+
+**🔧 Why?**
+Because `extern __shared__` declares a nameless shared memory array whose size is defined dynamically at kernel launch time, not in the source code.
+
+**Example:**
+```cpp
+__global__ void myKernel() {
+    extern __shared__ float shared_mem[];
+    shared_mem[threadIdx.x] = threadIdx.x;
+}
+```
+
+Here, `shared_mem` is just a pointer to shared memory — the variable itself has no name in the compiled symbol table. CUDA debuggers like cuda-gdb or Nsight cannot display it as a named shared memory variable, and you won't find it under the shared scope in your debugger UI.
+
+**Debugging Workarounds:**
+
+1. **Use temporary variables to inspect values:**
+```cpp
+if (tid == 0) {
+    float result = sdata[0];  // Force read into debuggable variable
+    atomicAdd(output, result);
+}
+```
+
+2. **Use volatile to prevent optimization:**
+```cpp
+if (tid == 0) {
+    volatile float* vsdata = sdata;
+    atomicAdd(output, vsdata[0]);  // Can now inspect vsdata[0]
+}
+```
+
+3. **Use printf for debugging:**
+```cpp
+if (tid == 0) {
+    printf("Block %d: sdata[0] = %f\n", blockIdx.x, sdata[0]);
+    atomicAdd(output, sdata[0]);
+}
+```
+
+4. **Compile with debug flags to minimize optimizations:**
+```bash
+nvcc -G -g -O0 vector_add_2d.cu -o vector_add_2d
+```
+
 ---
 
-## 🧠 **3.11 Debug Commands Reference**
+## 🧠 **13.12 Debug Commands Reference**
 
 **Note:** These commands are used in the VSCode Debug Console during an active debugging session.
 
@@ -527,7 +679,7 @@ __global__ void reduceSum(const float* input, float* output, int N) {
 
 **Note:** There is no `threadDim` variable in CUDA - use `blockDim` for thread dimensions per block and `gridDim` for block dimensions per grid.
 
-### **3.11.1 Understanding cuda-gdb Output**
+### **13.12.1 Understanding cuda-gdb Output**
 
 #### **`info cuda kernels` Output Explained**
 ```
@@ -610,7 +762,7 @@ These are CPU-side threads, not GPU threads. They manage the CUDA runtime and ke
 
 ---
 
-## ✅ **3.12 Summary**
+## ✅ **13.13 Summary**
 
 **Getting Started:**
 1. Install the Nsight VSCode Extension from the marketplace
@@ -635,7 +787,7 @@ These are CPU-side threads, not GPU threads. They manage the CUDA runtime and ke
 
 ---
 
-## 📚 **3.13 References and Resources**
+## 📚 **13.14 References and Resources**
 
 ### **Official Resources**
 - **[Nsight VSCode Extension on Marketplace](https://marketplace.visualstudio.com/items?itemName=NVIDIA.nsight-vscode-edition)**

@@ -11,58 +11,82 @@ PRIVATE
     dl  # Required for NVTX dynamic loading
 )
 
-# Custom target for coalescing analysis
+# Memory errors demonstration executable
+add_executable(memory_errors memory_errors.cu)
+target_link_libraries(memory_errors
+PRIVATE
+    ${CUDA_BASIC_LIB}
+)
+
+# Custom target for coalescing analysis - simplified to avoid shell syntax issues
 add_custom_target(${PROJECT_NAME}_coalescing_analysis
     COMMAND ${CMAKE_COMMAND} -E echo "=== Analyzing Memory Coalescing Patterns ==="
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/gen
-    COMMAND bash -c "PROFILE_DIR=${CMAKE_BINARY_DIR}/gen/coalescing_$$(date +%Y%m%d_%H%M%S) && \
-            mkdir -p $$PROFILE_DIR && \
-            echo \"Running coalesced access...\" && \
-            $<TARGET_FILE:${PROJECT_NAME}> > $$PROFILE_DIR/coalesced_output.txt && \
-            echo \"Running strided access...\" && \
-            $<TARGET_FILE:${PROJECT_NAME}> --strided > $$PROFILE_DIR/strided_output.txt && \
-            echo \"Analyzing memory efficiency...\" && \
-            (ncu --metrics gld_efficiency,gst_efficiency \
-                 --kernel-name \".*Coalesced\" \
-                 --export $$PROFILE_DIR/coalesced_metrics \
-                 $<TARGET_FILE:${PROJECT_NAME}> > $$PROFILE_DIR/coalesced_ncu.txt 2>&1 || echo \"NCU analysis completed\") && \
-            (ncu --metrics gld_efficiency,gst_efficiency \
-                 --kernel-name \".*Strided\" \
-                 --export $$PROFILE_DIR/strided_metrics \
-                 $<TARGET_FILE:${PROJECT_NAME}> --strided > $$PROFILE_DIR/strided_ncu.txt 2>&1 || echo \"NCU analysis completed\") && \
-            echo \"Coalescing analysis saved to: $$PROFILE_DIR\""
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/gen/coalescing_analysis
+    COMMAND $<TARGET_FILE:${PROJECT_NAME}> > ${CMAKE_BINARY_DIR}/gen/coalescing_analysis/coalesced_output.txt
+    COMMAND $<TARGET_FILE:${PROJECT_NAME}> --strided > ${CMAKE_BINARY_DIR}/gen/coalescing_analysis/strided_output.txt
+    COMMAND $<TARGET_FILE:${PROJECT_NAME}> --compare > ${CMAKE_BINARY_DIR}/gen/coalescing_analysis/compare_output.txt
+    COMMAND ${CMAKE_COMMAND} -E echo "Analysis saved to: ${CMAKE_BINARY_DIR}/gen/coalescing_analysis/"
     DEPENDS ${PROJECT_NAME}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Analyzing memory coalescing patterns"
 )
 
-# Custom target for NVTX timeline
+# Custom target for NVTX timeline - simplified
 add_custom_target(${PROJECT_NAME}_nvtx_timeline
     COMMAND ${CMAKE_COMMAND} -E echo "=== Generating NVTX Timeline ==="
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/gen
-    COMMAND bash -c "PROFILE_DIR=${CMAKE_BINARY_DIR}/gen/nvtx_$$(date +%Y%m%d_%H%M%S) && \
-            mkdir -p $$PROFILE_DIR && \
-            nsys profile --stats=true --trace=cuda,nvtx,osrt -o $$PROFILE_DIR/timeline $<TARGET_FILE:${PROJECT_NAME}> && \
-            nsys stats --report nvtx_sum $$PROFILE_DIR/timeline.nsys-rep > $$PROFILE_DIR/nvtx_summary.txt && \
-            nsys stats --report cuda_kernel_sum $$PROFILE_DIR/timeline.nsys-rep > $$PROFILE_DIR/kernel_summary.txt && \
-            echo \"NVTX timeline saved to: $$PROFILE_DIR/timeline.nsys-rep\" && \
-            echo \"View with: nsys-ui $$PROFILE_DIR/timeline.nsys-rep\""
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/gen/nvtx_timeline
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/gen/nvtx_timeline
+    COMMAND nsys profile --stats=true --trace=cuda,nvtx,osrt --force-overwrite=true -o ${CMAKE_BINARY_DIR}/gen/nvtx_timeline/timeline $<TARGET_FILE:${PROJECT_NAME}>
+    COMMAND ${CMAKE_COMMAND} -E echo "NVTX timeline saved to: ${CMAKE_BINARY_DIR}/gen/nvtx_timeline/timeline.nsys-rep"
+    COMMAND ${CMAKE_COMMAND} -E echo "View with: nsys-ui ${CMAKE_BINARY_DIR}/gen/nvtx_timeline/timeline.nsys-rep"
     DEPENDS ${PROJECT_NAME}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Profiling NVTX markers and generating timeline"
 )
 
-# Custom target for memory error detection
+# Custom target for memory error detection with vector_add_2d - simplified
 add_custom_target(${PROJECT_NAME}_memory_error_check
     COMMAND ${CMAKE_COMMAND} -E echo "=== Checking for Memory Errors ==="
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/gen
-    COMMAND bash -c "PROFILE_DIR=${CMAKE_BINARY_DIR}/gen/memcheck_$$(date +%Y%m%d_%H%M%S) && \
-            mkdir -p $$PROFILE_DIR && \
-            echo \"Running with intentional memory errors...\" && \
-            compute-sanitizer --tool memcheck $<TARGET_FILE:${PROJECT_NAME}> --memory-error > $$PROFILE_DIR/memcheck.log 2>&1 || true && \
-            echo \"Memory error detection saved to: $$PROFILE_DIR/memcheck.log\" && \
-            grep -E \"ERROR|Invalid\" $$PROFILE_DIR/memcheck.log || echo \"Run with compute-sanitizer to see detailed errors\""
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/gen/memcheck
+    COMMAND ${CMAKE_COMMAND} -E echo "Running with intentional memory errors..."
+    COMMAND compute-sanitizer --tool memcheck --save ${CMAKE_BINARY_DIR}/gen/memcheck/memcheck.log $<TARGET_FILE:${PROJECT_NAME}> --memory-error > ${CMAKE_BINARY_DIR}/gen/memcheck/output.txt 2>&1 || true
+    COMMAND ${CMAKE_COMMAND} -E echo "Memory error detection saved to: ${CMAKE_BINARY_DIR}/gen/memcheck/"
     DEPENDS ${PROJECT_NAME}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Detecting memory errors with compute-sanitizer"
+)
+
+# Custom targets for comprehensive memory_errors testing - simplified
+add_custom_target(memory_errors_all_checks
+    COMMAND ${CMAKE_COMMAND} -E echo "=== Running All Sanitizer Checks on memory_errors ==="
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/gen/memory_errors_all
+    COMMAND ${CMAKE_COMMAND} -E echo "1. Memory check - detecting out-of-bounds access..."
+    COMMAND compute-sanitizer --tool memcheck --log-file ${CMAKE_BINARY_DIR}/gen/memory_errors_all/memcheck_output.txt $<TARGET_FILE:memory_errors>
+    COMMAND ${CMAKE_COMMAND} -E echo "2. Race check - detecting race conditions..."
+    COMMAND compute-sanitizer --tool racecheck --log-file ${CMAKE_BINARY_DIR}/gen/memory_errors_all/racecheck_output.txt $<TARGET_FILE:memory_errors>
+    COMMAND ${CMAKE_COMMAND} -E echo "3. Init check - detecting uninitialized memory..."
+    COMMAND compute-sanitizer --tool initcheck --log-file ${CMAKE_BINARY_DIR}/gen/memory_errors_all/initcheck_output.txt $<TARGET_FILE:memory_errors>
+    COMMAND ${CMAKE_COMMAND} -E echo "Full reports saved to: ${CMAKE_BINARY_DIR}/gen/memory_errors_all/"
+    DEPENDS memory_errors
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running all compute-sanitizer checks on memory_errors example"
+)
+
+# Individual sanitizer targets for memory_errors
+add_custom_target(memory_errors_memcheck
+    COMMAND compute-sanitizer --tool memcheck $<TARGET_FILE:memory_errors>
+    DEPENDS memory_errors
+    COMMENT "Running memcheck on memory_errors"
+)
+
+add_custom_target(memory_errors_racecheck
+    COMMAND compute-sanitizer --tool racecheck $<TARGET_FILE:memory_errors>
+    DEPENDS memory_errors
+    COMMENT "Running racecheck on memory_errors"
+)
+
+add_custom_target(memory_errors_initcheck
+    COMMAND compute-sanitizer --tool initcheck $<TARGET_FILE:memory_errors>
+    DEPENDS memory_errors
+    COMMENT "Running initcheck on memory_errors"
 )

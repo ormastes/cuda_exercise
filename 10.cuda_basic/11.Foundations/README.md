@@ -1,8 +1,8 @@
-# 🧩 Part 1: Foundations
+# 🧩 Part 11: Foundations
 
 ---
 
-## 1.1 What is CUDA?
+## 11.1 What is CUDA?
 
 CUDA (Compute Unified Device Architecture) is NVIDIA's parallel computing platform and API model.
 
@@ -17,7 +17,7 @@ CUDA supports both:
 
 ---
 
-## 1.2 CUDA vs CPU Programming
+## 11.2 CUDA vs CPU Programming
 
 | Feature        | CPU                      | CUDA GPU                        |
 |----------------|---------------------------|----------------------------------|
@@ -33,7 +33,7 @@ In CUDA:
 
 ---
 
-## 1.3 Warp as Shared Environment
+## 11.3 Warp as Shared Environment
 
 1. **Shared Instruction Pointer**: All 32 threads in a warp share the same program counter - they're literally executing the same instruction at the same time.
 
@@ -70,7 +70,7 @@ The warp IS the fundamental unit of execution - not individual threads. Threads 
 
 ---
 
-## 1.4 CUDA Architecture
+## 11.4 CUDA Architecture
 
 ### Basic Building Blocks:
 - **Thread**: Executes a single CUDA kernel instance
@@ -91,7 +91,7 @@ Threads in a warp execute the same instruction. Divergence (e.g., `if` condition
 
 ---
 
-## 1.5 Memory Hierarchy
+## 11.5 Memory Hierarchy
 
 | Type             | Scope              | Access Latency | Usage |
 |------------------|--------------------|----------------|-------|
@@ -108,7 +108,7 @@ Threads in a warp execute the same instruction. Divergence (e.g., `if` condition
 
 ---
 
-## 1.6 CUDA Toolchain Overview
+## 11.6 CUDA Toolchain Overview
 
 | Tool          | Purpose                          |
 |---------------|----------------------------------|
@@ -125,7 +125,7 @@ The runtime API is easier and covers most use cases.
 
 ---
 
-## 1.7 Hardware Requirements & Setup
+## 11.7 Hardware Requirements & Setup
 
 ### Minimum Requirements:
 - NVIDIA GPU with CUDA Compute Capability 3.0+
@@ -144,7 +144,7 @@ nvidia-smi
 
 ---
 
-## 1.8 NVIDIA Driver and CUDA Installation on Ubuntu 24.04
+## 11.8 NVIDIA Driver and CUDA Installation on Ubuntu 24.04
 
 Follow these steps to install the NVIDIA CUDA Toolkit on Ubuntu 24.04 for GPU-accelerated computing.
 
@@ -218,7 +218,7 @@ Run nvidia-smi to confirm GPU and driver compatibility.
 
 ---
 
-## 1.9 Installing Clang 20 on Ubuntu 24.04
+## 11.9 Installing Clang 20 on Ubuntu 24.04
 
 Follow these steps to install Clang 20, the latest version of the LLVM compiler.
 
@@ -261,7 +261,7 @@ clang --version
 
 ---
 
-## 1.10 Installing Ubuntu on WSL2 (Windows Users)
+## 11.10 Installing Ubuntu on WSL2 (Windows Users)
 
 For Windows users who want to run CUDA development on Ubuntu, you can install Ubuntu on WSL2 (Windows Subsystem for Linux).
 

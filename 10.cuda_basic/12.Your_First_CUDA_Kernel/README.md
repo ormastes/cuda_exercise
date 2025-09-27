@@ -1,11 +1,11 @@
 
-# ⚙️ Part 2: Your First CUDA Kernel
+# ⚙️ Part 12: Your First CUDA Kernel
 
 **Goal**: Introduce kernel syntax, compilation, launch, and debugging in VSCode.
 
 ---
 
-## **2.1 Host vs Device Code Separation**
+## **12.1 Host vs Device Code Separation**
 
 CUDA functions are separated by **execution location** and **call origin**:
 
@@ -21,7 +21,7 @@ You use:
 
 ---
 
-## **2.2 `__global__`, `__device__`, and `dim3` API**
+## **12.2 `__global__`, `__device__`, and `dim3` API**
 
 #### ✅ `__global__` Kernel
 Callable from host, executed on GPU:
@@ -59,7 +59,7 @@ This helps map GPU threads to 2D/3D data like images or matrices.
 
 ---
 
-## **2.3 Launch Configuration with `dim3`**
+## **12.3 Launch Configuration with `dim3`**
 
 Let’s use `dim3` to process data in 2D:
 
@@ -80,11 +80,11 @@ int y = blockIdx.y * blockDim.y + threadIdx.y;
 
 ---
 
-## **2.4 CUDA Memory Management APIs**
+## **12.4 CUDA Memory Management APIs**
 
 Before diving into the example, let's understand the key CUDA APIs for memory management:
 
-### **2.4.1 Memory Allocation & Transfer APIs**
+### **12.4.1 Memory Allocation & Transfer APIs**
 
 | API Function | Description | Example |
 |--------------|-------------|---------|
@@ -92,7 +92,7 @@ Before diving into the example, let's understand the key CUDA APIs for memory ma
 | `cudaMemcpy()` | Copies data between host and device | `cudaMemcpy(dst, src, size, direction)` |
 | `cudaFree()` | Frees GPU memory | `cudaFree(d_ptr)` |
 
-### **2.4.2 cudaMemcpy Direction Flags**
+### **12.4.2 cudaMemcpy Direction Flags**
 
 | Flag | Direction | Usage |
 |------|-----------|-------|
@@ -100,7 +100,7 @@ Before diving into the example, let's understand the key CUDA APIs for memory ma
 | `cudaMemcpyDeviceToHost` | GPU → CPU | Download results |
 | `cudaMemcpyDeviceToDevice` | GPU → GPU | Copy between GPU buffers |
 
-### **2.4.3 Kernel Launch Syntax**
+### **12.4.3 Kernel Launch Syntax**
 
 ```cpp
 kernelName<<<gridDim, blockDim>>>(args);
@@ -110,7 +110,7 @@ kernelName<<<gridDim, blockDim>>>(args);
 - **blockDim**: Number of threads per block (can be dim3 for 2D/3D)
 - **args**: Arguments passed to the kernel function
 
-### **2.4.4 Built-in Variables (Available in Kernels)**
+### **12.4.4 Built-in Variables (Available in Kernels)**
 
 | Variable | Description |
 |----------|-------------|
@@ -121,9 +121,9 @@ kernelName<<<gridDim, blockDim>>>(args);
 
 ---
 
-## **2.5 Complete Vector Add Example**
+## **12.5 Complete Vector Add Example**
 
-### **2.5.1 Full Code with Explanations**
+### **12.5.1 Full Code with Explanations**
 
 ```cpp
 // vector_add_2d.cu
@@ -201,7 +201,7 @@ int main() {
 }
 ```
 
-### **2.5.2 Key Concepts Demonstrated**
+### **12.5.2 Key Concepts Demonstrated**
 
 | Concept | Code Example | Purpose |
 |---------|--------------|---------|
@@ -212,7 +212,7 @@ int main() {
 | **Grid Configuration** | `dim3 blocks((width+15)/16, ...)` | Calculate number of blocks |
 | **Memory Transfer** | `cudaMemcpy(..., cudaMemcpyHostToDevice)` | Copy data to GPU |
 
-### **2.5.3 Expected Output**
+### **12.5.3 Expected Output**
 
 ```
 C[0] = 0
@@ -227,9 +227,115 @@ The computation for each element is: `C[i] = A[i]² + B[i]`
 
 ---
 
-## 🔨 2.6 Building and Running the Code
+## 🔧 12.6 CMake Root Configuration
 
-### **2.6.1 Building with VSCode (Recommended)**
+### **12.6.1 Root CMakeLists.txt Setup**
+
+Before building CUDA projects, ensure your root `CMakeLists.txt` is properly configured. Here's the essential setup:
+
+```cmake
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+
+# Set CUDA toolkit root
+set(CMAKE_CUDA_COMPILER /usr/local/cuda-13.0/bin/nvcc)
+set(CUDAToolkit_ROOT /usr/local/cuda-13.0)
+
+# Set CUDA architectures before project
+# 75=Turing, 80=Ampere, 86=Lovelace, native for current GPU
+set(CMAKE_CUDA_ARCHITECTURES 75;80;86)
+
+# Enable CUDA language
+project(cuda_project LANGUAGES CXX CUDA)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+find_package(CUDAToolkit REQUIRED)
+
+# Global settings
+set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+set(CMAKE_CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+```
+
+### **12.6.2 Key Configuration Elements**
+
+| Setting | Purpose | Example Value |
+|---------|---------|---------------|
+| `CMAKE_CUDA_COMPILER` | Path to nvcc compiler | `/usr/local/cuda-13.0/bin/nvcc` |
+| `CUDAToolkit_ROOT` | CUDA installation directory | `/usr/local/cuda-13.0` |
+| `CMAKE_CUDA_ARCHITECTURES` | Target GPU architectures | `75;80;86` or `native` |
+| `CMAKE_CUDA_STANDARD` | C++ standard for CUDA code | `20` |
+| `CMAKE_CUDA_SEPARABLE_COMPILATION` | Enable device code linking | `ON` |
+
+### **12.6.3 GPU Architecture Selection**
+
+**Common Architecture Values:**
+| Architecture | Compute Capability | GPU Examples |
+|--------------|-------------------|--------------|
+| `60` | 6.0 | Pascal (P100) |
+| `70` | 7.0 | Volta (V100) |
+| `75` | 7.5 | Turing (RTX 2080, T4) |
+| `80` | 8.0 | Ampere (A100) |
+| `86` | 8.6 | Ampere (RTX 3090, RTX 3080) |
+| `89` | 8.9 | Ada Lovelace (RTX 4090) |
+| `90` | 9.0 | Hopper (H100) |
+| `native` | Auto-detect | Current GPU |
+
+**Setting Architecture:**
+```cmake
+# Single architecture
+set(CMAKE_CUDA_ARCHITECTURES 86)
+
+# Multiple architectures
+set(CMAKE_CUDA_ARCHITECTURES 75;80;86)
+
+# Auto-detect current GPU
+set(CMAKE_CUDA_ARCHITECTURES native)
+
+# All supported architectures
+set(CMAKE_CUDA_ARCHITECTURES all)
+```
+
+### **12.6.4 Build Type Configuration**
+
+Add build type specific flags in your root CMakeLists.txt:
+
+```cmake
+# Compiler flags for different build types
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(
+        "$<$<COMPILE_LANGUAGE:CUDA>:-G;-g;-O0>"
+        "$<$<COMPILE_LANGUAGE:CXX>:-g3;-O0>"
+    )
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_options(
+        "$<$<COMPILE_LANGUAGE:CUDA>:-O3;-use_fast_math>"
+        "$<$<COMPILE_LANGUAGE:CXX>:-O3>"
+    )
+endif()
+```
+
+### **12.6.5 Project Structure Example**
+
+```
+cuda_exercise/
+├── CMakeLists.txt                 # Root configuration (above)
+├── 10.cuda_basic/
+│   ├── CMakeLists.txt             # add_subdirectory() calls
+│   └── 12.Your_First_CUDA_Kernel/
+│       ├── CMakeLists.txt         # Target definition
+│       └── vector_add.cu          # CUDA source
+└── build/                          # Build directory
+```
+
+---
+
+## 🔨 12.7 Building and Running the Code
+
+### **12.7.1 Building with VSCode (Recommended)**
 
 #### **Quick Build with Keyboard Shortcuts**
 
@@ -266,7 +372,7 @@ The bottom status bar provides quick access to:
 
 ![VSCode Status Bar](images/vscode_status_bar.png)
 
-### **2.6.2 Building with Command Line**
+### **12.7.2 Building with Command Line**
 
 #### **Using CMake Commands**
 
@@ -321,7 +427,7 @@ nvcc -O3 vector_add_2d.cu -o vector_add
 ./vector_add
 ```
 
-### **2.6.3 Build Output Structure**
+### **12.7.3 Build Output Structure**
 
 After building, your directory structure will look like:
 
@@ -338,9 +444,9 @@ build/
 
 ---
 
-## 🛠️ 2.7 VSCode Setup and Configuration
+## 🛠️ 12.8 VSCode Setup and Configuration
 
-#### ✅ Step 2.7.1: Install Required Extensions
+#### ✅ Step 12.8.1: Install Required Extensions
 
 * [x] CUDA Nsight for VSCode
 * [x] CMake Tools (if using CMake)
@@ -348,7 +454,7 @@ build/
 
 ---
 
-#### ✅ Step 2.7.2: VSCode Folder Structure
+#### ✅ Step 12.8.2: VSCode Folder Structure
 
 ```
 .vscode/
@@ -364,7 +470,7 @@ CMakeLists.txt
 
 ---
 
-#### ✅ Step 2.7.3: `settings.json` (VSCode settings)
+#### ✅ Step 12.8.3: `settings.json` (VSCode settings)
 
 **What this file does:**
 - Configures VSCode workspace settings specific to this CUDA project
@@ -395,7 +501,7 @@ CMakeLists.txt
 
 ---
 
-#### ✅ Step 2.7.4: `launch.json` (debug configurations)
+#### ✅ Step 12.8.4: `launch.json` (debug configurations)
 
 **What this file does:**
 - Defines how to debug CUDA programs in VSCode
@@ -450,7 +556,7 @@ CMakeLists.txt
 
 ---
 
-#### ✅ Step 2.7.5: `CMakePresets.json` (Build Presets)
+#### ✅ Step 12.8.5: `CMakePresets.json` (Build Presets)
 
 **What this file does:**
 - Defines reusable build configurations for different scenarios (debug, release, different compilers)
@@ -518,7 +624,7 @@ Available presets:
 
 ---
 
-#### ✅ Step 2.7.6: `CMakeLists.txt` (Project Build Configuration)
+#### ✅ Step 12.8.6: `CMakeLists.txt` (Project Build Configuration)
 
 The CMakeLists.txt file in the project folder:
 
@@ -534,9 +640,9 @@ This simple CMake configuration:
 
 ---
 
-## 📁 2.8 Configuration Files Explained
+## 📁 12.9 Configuration Files Explained
 
-### **2.8.1 `.vscode/settings.json`** - VSCode Workspace Configuration
+### **12.9.1 `.vscode/settings.json`** - VSCode Workspace Configuration
 Configures how VSCode handles the CUDA project:
 
 | Setting | Purpose |
@@ -546,7 +652,7 @@ Configures how VSCode handles the CUDA project:
 | `C_Cpp.default.configurationProvider` | Uses CMake Tools for IntelliSense configuration |
 | `files.associations` | Maps `*.cu` and `*.cuh` files to CUDA C++ language mode |
 
-### **2.8.2 `.vscode/launch.json`** - Debug Configurations
+### **12.9.2 `.vscode/launch.json`** - Debug Configurations
 Defines two debug configurations:
 
 1. **CUDA C++: Launch (cuda-gdb)**
@@ -559,7 +665,7 @@ Defines two debug configurations:
    - Uses `${cmake.testProgram}` for test executables
    - Passes test arguments via `${cmake.testArgs}`
 
-### **2.8.3 `CMakePresets.json`** - Build Presets
+### **12.9.3 `CMakePresets.json`** - Build Presets
 Provides three build configurations:
 
 | Preset | Compiler | Build Type | Output Directory |
@@ -568,7 +674,7 @@ Provides three build configurations:
 | `default-clang` | Clang/LLVM | Debug | `build-clang/` |
 | `release` | System default | Release | `build-release/` |
 
-### **2.8.4 How They Work Together**
+### **12.9.4 How They Work Together**
 
 ```mermaid
 graph LR
@@ -589,9 +695,9 @@ graph LR
 
 ---
 
-## 🔧 2.9 Troubleshooting Common Issues
+## 🔧 12.10 Troubleshooting Common Issues
 
-### **2.9.1 Build Errors**
+### **12.10.1 Build Errors**
 
 | Error | Cause | Solution |
 |-------|-------|----------|
@@ -600,7 +706,7 @@ graph LR
 | `undefined reference to cudaMalloc` | Not linking CUDA runtime | Add `-lcudart` to link flags |
 | `unsupported gpu architecture` | GPU compute capability mismatch | Check GPU with `nvidia-smi` and set correct `-arch` flag |
 
-### **2.9.2 Runtime Errors**
+### **12.10.2 Runtime Errors**
 
 | Error | Cause | Solution |
 |-------|-------|----------|
@@ -609,7 +715,7 @@ graph LR
 | `unspecified launch failure` | Kernel crash (often array bounds) | Add boundary checks, use cuda-memcheck |
 | `invalid device function` | Architecture mismatch | Recompile with correct compute capability |
 
-### **2.9.3 VSCode Issues**
+### **12.10.3 VSCode Issues**
 
 **IntelliSense not working for CUDA:**
 - Ensure `files.associations` in settings.json maps `.cu` to `cuda-cpp`
@@ -626,7 +732,7 @@ graph LR
 - Ensure CMakeLists.txt has `project(name LANGUAGES CUDA CXX)`
 - Try manually setting: `cmake -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc`
 
-### **2.9.4 Performance Issues**
+### **12.10.4 Performance Issues**
 
 **Kernel runs slower than expected:**
 - Check if you're using Debug build (use Release for performance)

@@ -5,6 +5,7 @@ set(CMAKE_CUDA_COMPILER /usr/local/cuda-13.0/bin/nvcc)
 set(CUDAToolkit_ROOT /usr/local/cuda-13.0)
 
 # Set CUDA architectures before project
+# 75=Turing, 80=Ampere, 86=Lovelace, native for current GPU, all for compatibility. See https://developer.nvidia.com/cuda-gpus
 set(CMAKE_CUDA_ARCHITECTURES 75;80;86)
 
 # Enable CUDA language
@@ -16,6 +17,11 @@ set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 find_package(CUDAToolkit REQUIRED)
+
+# Global settings
+set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+set(CMAKE_CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Testing support
 enable_testing()
@@ -35,15 +41,10 @@ FetchContent_MakeAvailable(googletest)
 include(CTest)
 include(GoogleTest)
 
-# Global settings
-set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
-set(CMAKE_CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 # Compiler flags for different build types
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(
-        "$<$<COMPILE_LANGUAGE:CUDA>:-g;-G>"
+        "$<$<COMPILE_LANGUAGE:CUDA>:-g;-G;-O0>"
         "$<$<COMPILE_LANGUAGE:CXX>:-g3;-O0>"
     )
     set(CUDA_BASIC_LIB CUDA::cudart CUDA::nvtx3)

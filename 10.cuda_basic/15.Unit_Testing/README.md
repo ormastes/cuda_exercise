@@ -4,26 +4,38 @@ This project demonstrates how to write unit tests for CUDA kernels using the GPU
 
 ## Project Structure
 
-- `vector_add_2d.cu` - Implementation of 2D vector operations kernels
-- `vector_add_2d.h` - Header file with kernel declarations and helper functions
-- `test_vector_add_2d.cu` - Unit tests using the GPU testing framework
-- `CMakeLists.txt` - Build configuration
+- `vector_add_2d.cu` - Optimized implementation of 2D vector operations with performance-focused kernels
+- `vector_add_2d.h` - Header file with kernel declarations
+- `test_vector_add_2d.cu` - Comprehensive unit tests using the GPU testing framework
+- `CMakeLists.txt` - Build configuration with Google Test integration
 
 ## Implemented Kernels
 
-### 1. `vector_add_2d`
-Simple 2D vector addition kernel that adds two matrices element-wise.
+### 1. `vectorAdd2D`
+Optimized 2D vector addition kernel with strided memory access pattern (column-major in row-major storage).
 
 ```cuda
-__global__ void vector_add_2d(const float* a, const float* b, float* c, int width, int height)
+__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height)
 ```
 
-### 2. `reduce_sum_2d`
-2D reduction kernel that sums all elements in a matrix using shared memory and atomic operations.
+**Features:**
+- Uses column-major indexing (`x * height + y`) for testing strided memory patterns
+- Incorporates `square()` device function for computation
+- Demonstrates memory coalescing challenges
+
+### 2. `reduceSum`
+High-performance reduction kernel with grid-stride loop and optimized memory access.
 
 ```cuda
-__global__ void reduce_sum_2d(const float* input, float* output, int width, int height)
+__global__ void reduceSum(const float* input, float* output, int N, int stride)
 ```
+
+**Features:**
+- **Grid-stride loop**: Each thread processes multiple elements for better memory throughput
+- **Loop unrolling**: Compile-time optimizations for different block sizes
+- **Warp-level reduction**: Exploits warp synchronization for the final 32 threads
+- **Coalesced memory access**: Optimized for both regular and strided patterns
+- **Multiple elements per thread**: Reduces kernel launch overhead
 
 ## Test Types Demonstrated
 
@@ -93,6 +105,96 @@ GPU_TEST_P(ParameterizedTest, AddValues) {
 
 GPU_INSTANTIATE_TEST_SUITE_P(Values, ParameterizedTest, AddValues,
     ::testing::Values(1.0f, 2.0f, 3.0f, 5.0f, 10.0f));
+```
+
+## CMake Configuration
+
+### Root CMakeLists.txt Setup
+
+The root CMakeLists.txt must be properly configured for CUDA and Google Test integration:
+
+```cmake
+......
+
+# Testing support
+enable_testing()
+
+# FetchContent for downloading Google Test
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.14.0
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+# Include Google Test's CMake utilities
+include(CTest)
+include(GoogleTest)
+```
+
+### Project-Specific CMakeLists.txt
+
+The Unit Testing project's CMakeLists.txt configures the test executable:
+
+```cmake
+# Create test executable
+add_executable(15_Unit_Testing_test
+    test_vector_add_2d.cu
+    vector_add_2d.cu
+)
+
+# Include directories
+target_include_directories(15_Unit_Testing_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common  # For gpu_gtest.h
+)
+
+# Link libraries
+target_link_libraries(15_Unit_Testing_test
+    CUDA::cudart
+    gtest
+    gtest_main
+)
+
+# Set CUDA compilation flags
+set_target_properties(15_Unit_Testing_test PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+)
+
+# Register tests with CTest
+gtest_discover_tests(15_Unit_Testing_test)
+```
+
+### Key Configuration Elements
+
+| Configuration | Purpose | Required for |
+|---------------|---------|--------------|
+| `CMAKE_CUDA_ARCHITECTURES` | Target GPU compute capabilities | GPU kernel compilation |
+| `CMAKE_CUDA_SEPARABLE_COMPILATION` | Enable device code linking | Multi-file CUDA projects |
+| `FetchContent` | Download Google Test automatically | Unit testing framework |
+| `gtest_discover_tests` | Register tests with CTest | Running tests via `ctest` |
+| `CUDA::cudart` | CUDA runtime library | All CUDA applications |
+
+### Build Configurations
+
+Different build types for testing:
+
+```bash
+# Debug build (best for test development)
+cmake -B build_debug -S . -DCMAKE_BUILD_TYPE=Debug
+cmake --build build_debug --target 15_Unit_Testing_test
+
+# Release build (for performance testing)
+cmake -B build_release -S . -DCMAKE_BUILD_TYPE=Release
+cmake --build build_release --target 15_Unit_Testing_test
+
+# With Ninja for faster builds
+cmake -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=Debug
+ninja -C build 15_Unit_Testing_test
 ```
 
 ## Building
@@ -167,6 +269,8 @@ cmake --build build --target 15_Unit_Testing_test
 4. **Custom Launch Configurations**: Control grid and block dimensions for tests
 5. **Integration with GTest**: Seamless integration with Google Test framework
 6. **Host Integration Tests**: Traditional CPU-side tests for kernel verification
+7. **Performance-Oriented Kernels**: Optimized implementations demonstrating best practices
+8. **Memory Pattern Testing**: Kernels designed to test different memory access patterns
 
 ## Best Practices
 
@@ -190,3 +294,34 @@ cmake --build build --target 15_Unit_Testing_test
    - Remember that GPU tests are asynchronous
    - Use proper synchronization for host tests
    - Check both launch and execution errors
+
+## Performance Optimizations Demonstrated
+
+### Memory Access Patterns
+The `vectorAdd2D` kernel intentionally uses a strided access pattern (column-major indexing) to demonstrate:
+- Performance impact of non-coalesced memory access
+- How strided patterns affect memory bandwidth
+- Testing scenarios for memory-bound kernels
+
+### Reduction Optimization Techniques
+The `reduceSum` kernel showcases several optimization strategies:
+
+1. **Grid-Stride Loops**: Allows kernels to process datasets larger than the grid size
+2. **Loop Unrolling**: Template-based compile-time optimization for known block sizes
+3. **Warp-Level Primitives**: Uses implicit warp synchronization for the last 32 threads
+4. **Volatile Pointers**: Ensures proper memory visibility in the final reduction phase
+5. **Multiple Elements per Thread**: Increases arithmetic intensity and reduces memory traffic
+
+### Testing Performance Characteristics
+The unit tests can verify:
+- Correctness of optimized kernels
+- Performance consistency across different data sizes
+- Behavior with various launch configurations
+- Edge cases with non-power-of-2 sizes
+
+## Comparison with Part 14
+This implementation incorporates the best practices from Part 14 (Code Inspection and Profiling):
+- Optimized memory access patterns
+- Performance-oriented kernel design
+- Testing framework for verification
+- Ready for profiling with Nsight tools

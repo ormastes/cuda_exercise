@@ -13,9 +13,18 @@ __global__ void reduceSum(const float* input, float* output, int N) {
     unsigned int tid = threadIdx.x;
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
+    // Debug helper: volatile pointer to make shared memory visible in debugger
+    volatile float* debug_sdata = sdata;
+
     // Load data to shared memory
     sdata[tid] = (i < N) ? input[i] : 0.0f;
     __syncthreads();
+
+    // Debug point: can inspect debug_sdata[tid] here
+    // Uncomment for printf debugging:
+    // if (blockIdx.x == 0 && tid == 0) {
+    //     printf("Block 0, initial sdata[0] = %f\n", debug_sdata[0]);
+    // }
 
     // Reduction in shared memory
     for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
@@ -27,7 +36,13 @@ __global__ void reduceSum(const float* input, float* output, int N) {
 
     // Write result for this block to global memory
     if (tid == 0) {
-        atomicAdd(output, sdata[0]);
+        // Force read into debuggable variable
+        float result = debug_sdata[0];
+
+        // Debug output (uncomment if needed):
+        // printf("Block %d: final result = %f\n", blockIdx.x, result);
+
+        atomicAdd(output, result);
     }
 }
 

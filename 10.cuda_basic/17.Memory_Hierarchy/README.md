@@ -315,4 +315,213 @@ This section demonstrated:
 
 ---
 
+## **7.15 Memory Ordering and Consistency (Advanced)**
+
+### **Memory Ordering Fundamentals**
+
+Memory ordering defines how memory operations are observed by different threads and ensures consistency in parallel programs.
+
+### **7.15.1 Memory Fences and Barriers**
+
+```cuda
+// Thread-level fence
+__global__ void thread_fence_example(int* data, int* flag) {
+    int tid = threadIdx.x;
+
+    // Write data first
+    data[tid] = tid * 2;
+
+    // Memory fence ensures data write completes before flag
+    __threadfence();
+
+    // Signal completion
+    if (tid == 0) {
+        *flag = 1;
+    }
+}
+
+// Block-level fence
+__global__ void block_fence_example(int* shared_data, int* global_data) {
+    __shared__ int local_cache[256];
+    int tid = threadIdx.x;
+
+    // Load from global to shared
+    local_cache[tid] = global_data[tid];
+
+    // Block-level fence
+    __threadfence_block();
+
+    // All threads see the shared memory writes
+    __syncthreads();
+
+    // Process shared data
+    int sum = 0;
+    for (int i = 0; i < 256; i++) {
+        sum += local_cache[i];
+    }
+
+    if (tid == 0) {
+        global_data[blockIdx.x] = sum;
+    }
+}
+
+// System-level fence for CPU-GPU synchronization
+__global__ void system_fence_example(int* gpu_data, int* cpu_flag) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    // Process data
+    gpu_data[tid] = process_element(gpu_data[tid]);
+
+    // System fence ensures visibility to CPU
+    __threadfence_system();
+
+    // Signal CPU that GPU work is complete
+    if (tid == 0) {
+        *cpu_flag = 1;
+    }
+}
+```
+
+### **7.15.2 Atomic Operations with Memory Ordering**
+
+```cuda
+// Acquire-Release semantics
+__device__ int data_ready = 0;
+__device__ int shared_data[1024];
+
+// Producer thread
+__global__ void producer_kernel() {
+    if (threadIdx.x == 0) {
+        // Write data
+        for (int i = 0; i < 1024; i++) {
+            shared_data[i] = i * i;
+        }
+
+        // Release: ensure all writes above are visible
+        __threadfence();
+
+        // Signal data is ready (release operation)
+        atomicExch(&data_ready, 1);
+    }
+}
+
+// Consumer thread
+__global__ void consumer_kernel() {
+    if (threadIdx.x == 0) {
+        // Acquire: wait for data to be ready
+        while (atomicAdd(&data_ready, 0) == 0) {
+            // Busy wait
+        }
+
+        // Acquire fence: ensure no reads move above the flag check
+        __threadfence();
+
+        // Now safe to read shared_data
+        int sum = 0;
+        for (int i = 0; i < 1024; i++) {
+            sum += shared_data[i];
+        }
+        printf("Sum: %d\n", sum);
+    }
+}
+```
+
+### **7.15.3 Sequential Consistency**
+
+```cuda
+__device__ int x = 0, y = 0;
+__device__ int r1 = 0, r2 = 0;
+
+__global__ void sequential_consistency_test() {
+    if (threadIdx.x == 0) {
+        // Thread 0
+        atomicExch(&x, 1);    // Store x = 1
+        __threadfence();      // Sequential consistency fence
+        r1 = atomicAdd(&y, 0); // Load y
+    } else if (threadIdx.x == 1) {
+        // Thread 1
+        atomicExch(&y, 1);    // Store y = 1
+        __threadfence();      // Sequential consistency fence
+        r2 = atomicAdd(&x, 0); // Load x
+    }
+
+    __syncthreads();
+
+    // With sequential consistency, r1 == 0 && r2 == 0 is impossible
+    if (threadIdx.x == 0 && r1 == 0 && r2 == 0) {
+        printf("Sequential consistency violation!\n");
+    }
+}
+```
+
+### **7.15.4 Lock-Free Data Structures**
+
+```cuda
+template<typename T>
+struct LockFreeStack {
+    struct Node {
+        T data;
+        Node* next;
+    };
+
+    __device__ Node* head;
+
+    __device__ void push(T item, Node* new_node) {
+        new_node->data = item;
+
+        Node* old_head;
+        do {
+            old_head = head;
+            new_node->next = old_head;
+
+        } while (atomicCAS((unsigned long long*)&head,
+                          (unsigned long long)old_head,
+                          (unsigned long long)new_node) !=
+                 (unsigned long long)old_head);
+    }
+
+    __device__ bool pop(T* result) {
+        Node* old_head;
+        Node* new_head;
+
+        do {
+            old_head = head;
+            if (old_head == nullptr) {
+                return false;  // Stack is empty
+            }
+
+            new_head = old_head->next;
+
+        } while (atomicCAS((unsigned long long*)&head,
+                          (unsigned long long)old_head,
+                          (unsigned long long)new_head) !=
+                 (unsigned long long)old_head);
+
+        *result = old_head->data;
+        return true;
+    }
+};
+```
+
+### **Memory Ordering Best Practices**
+
+1. **Use appropriate fence levels**:
+   - `__threadfence_block()`: For shared memory within block
+   - `__threadfence()`: For global memory across device
+   - `__threadfence_system()`: For CPU-GPU synchronization
+
+2. **Minimize fence usage**: Fences can impact performance significantly
+
+3. **Use atomic operations appropriately**:
+   - Simple counters: `atomicAdd()`
+   - Flags and locks: `atomicExch()`, `atomicCAS()`
+   - Read-modify-write: `atomicOr()`, `atomicAnd()`
+
+4. **Consider memory consistency models**:
+   - Relaxed: Best performance, weakest guarantees
+   - Acquire-Release: Good balance for producer-consumer
+   - Sequential Consistency: Strongest guarantees, highest overhead
+
+---
+
 📄 **Next**: Part 8 - Thread Hierarchy Practice

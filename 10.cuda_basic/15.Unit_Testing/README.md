@@ -93,18 +93,36 @@ GPU_TEST_F(ReductionFixture, SumElements) {
 }
 ```
 
-### 4. GPU_TEST_P - Parameterized Test
-Test that runs multiple times with different parameter values.
+### 4. GPU_TEST_G - Generator-Based Test
+Test that uses generator syntax for parameterized testing on GPU.
 
 ```cuda
-GPU_TEST_P(ParameterizedTest, AddValues) {
-    float param = _param;  // Access parameter
-    float result = compute_sum(param, param);
-    GPU_EXPECT_NEAR(result, param * 2.0f, 1e-5f);
-}
+GPU_TEST_G(GpuGeneratorTest, square) {
+    float a = GPU_GENERATOR(1.0f, 2.0f, 3.0f, 4.0f);
+    float expected_square = GPU_GENERATOR(1.0f, 4.0f, 9.0f, 16.0f);
+    GPU_USE_GENERATOR(ALIGNED);  // 4 iterations with aligned values
 
-GPU_INSTANTIATE_TEST_SUITE_P(Values, ParameterizedTest, AddValues,
-    ::testing::Values(1.0f, 2.0f, 3.0f, 5.0f, 10.0f));
+    float result = square(a);
+    GPU_EXPECT_NEAR(result, expected_square, 1e-5f);
+}
+```
+
+### 5. Host-Side Generator Tests (TEST_G)
+Using gtest-parameterized-lib for host-side parameterized tests with intuitive generator syntax.
+
+```cpp
+class HostGeneratorTest : public ::gtest_generator::TestWithGenerator {};
+
+TEST_G(HostGeneratorTest, VectorAdd2D) {
+    // Generate test parameters
+    int width = GENERATOR(16, 32, 64);
+    int height = GENERATOR(16, 32, 64);
+    float a_value = GENERATOR(1.0f, 2.0f, 3.0f);
+    float b_value = GENERATOR(1.0f, 2.0f, 3.0f);
+    USE_GENERATOR(ALIGNED);  // Use aligned mode for fewer test runs
+
+    // Test implementation...
+}
 ```
 
 ## CMake Configuration
@@ -246,14 +264,24 @@ cmake --build build --target 15_Unit_Testing_test
 [  PASSED  ] 11 tests.
 ```
 
-## GPU Test Macros Reference
+## Test Macros Reference
 
+### GPU Test Macros
 | Macro | Purpose | Launch Config |
 |-------|---------|---------------|
 | `GPU_TEST(Suite, Name)` | Simple device test | Default <<<1,1>>> |
 | `GPU_TEST_CFG(Suite, Name, grid, block, ...)` | Test with explicit config | User-specified |
 | `GPU_TEST_F(Fixture, Name)` | Fixture-based test | From fixture's launch_cfg() |
-| `GPU_TEST_P(Suite, Name)` | Parameterized test | Default <<<1,1>>> |
+| `GPU_TEST_G(Suite, Name)` | Generator-based test | Default <<<1,1>>> |
+| `GPU_TEST_G_CFG(Suite, Name, grid, block)` | Generator test with config | User-specified |
+
+### Host Test Macros (with gtest-parameterized-lib)
+| Macro | Purpose | Description |
+|-------|---------|-------------|
+| `TEST_G(Fixture, Name)` | Generator-based host test | Uses GENERATOR() for parameterization |
+| `GENERATOR(...)` | Define test values | Creates parameter combinations |
+| `USE_GENERATOR()` | Activate generators | Must be called after all GENERATOR() calls |
+| `USE_GENERATOR(ALIGNED)` | Aligned mode | Reduces test count by parallel iteration |
 
 ## Test Assertions Available in Device Code
 
@@ -264,13 +292,15 @@ cmake --build build --target 15_Unit_Testing_test
 ## Key Features
 
 1. **Direct GPU Testing**: Tests run directly on the GPU, allowing verification of device functions and kernels
-2. **Fixture Support**: Setup and teardown device memory with fixture classes
-3. **Parameterized Testing**: Run the same test with different input values
-4. **Custom Launch Configurations**: Control grid and block dimensions for tests
-5. **Integration with GTest**: Seamless integration with Google Test framework
-6. **Host Integration Tests**: Traditional CPU-side tests for kernel verification
-7. **Performance-Oriented Kernels**: Optimized implementations demonstrating best practices
-8. **Memory Pattern Testing**: Kernels designed to test different memory access patterns
+2. **Generator-Based Testing**: Intuitive GENERATOR() syntax for both GPU and host tests using [gtest-parameterized-lib](https://github.com/ormastes/gtest-parameterized-lib)
+3. **Fixture Support**: Setup and teardown device memory with fixture classes
+4. **Parameterized Testing**: Run the same test with different input values using generator syntax
+5. **Custom Launch Configurations**: Control grid and block dimensions for tests
+6. **Integration with GTest**: Seamless integration with Google Test framework
+7. **Host Integration Tests**: Traditional CPU-side tests for kernel verification with generator support
+8. **Performance-Oriented Kernels**: Optimized implementations demonstrating best practices
+9. **Memory Pattern Testing**: Kernels designed to test different memory access patterns
+10. **Sampling Modes**: Support for FULL (Cartesian product) and ALIGNED (parallel iteration) test generation
 
 ## Best Practices
 

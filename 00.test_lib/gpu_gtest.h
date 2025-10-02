@@ -632,7 +632,7 @@ inline ::testing::AssertionResult LaunchGpuGeneratorTest(
     }
     return ::testing::AssertionSuccess();
 }
-
+#ifdef __CUDA_ARCH__
 // GPU generator test macro
 #define GPU_TEST_G(TestClassName, TestName) \
     class TestClassName##__##TestName##_Test : public ::gpu_generator::GpuTestWithGenerator { \
@@ -666,7 +666,7 @@ inline ::testing::AssertionResult LaunchGpuGeneratorTest(
         ASSERT_TRUE(LaunchGpuGeneratorTest( \
             TestClassName##__##TestName##_kernel, _test_instance, cfg)); \
     } \
-    __host__ __device__ void _##TestClassName##__##TestName##_kernel( \
+    __device__ void _##TestClassName##__##TestName##_kernel( \
         GpuTestResult* _gpu_result, \
         TestClassName##__##TestName##_Test* _test_instance); \
     __global__ void TestClassName##__##TestName##_kernel( \
@@ -674,7 +674,7 @@ inline ::testing::AssertionResult LaunchGpuGeneratorTest(
         TestClassName##__##TestName##_Test* _test_instance) { \
           _##TestClassName##__##TestName##_kernel(_gpu_result, _test_instance); \
         } \
-    __host__ __device__ void _##TestClassName##__##TestName##_kernel( \
+    __device__ void _##TestClassName##__##TestName##_kernel( \
         GpuTestResult* _gpu_result, \
         TestClassName##__##TestName##_Test* _test_instance)
 
@@ -714,7 +714,7 @@ inline ::testing::AssertionResult LaunchGpuGeneratorTest(
         ASSERT_TRUE(LaunchGpuGeneratorTest( \
             TestClassName##__##TestName##_kernel, _test_instance, cfg)); \
     } \
-    __host__ __device__ void _##TestClassName##__##TestName##_kernel( \
+    __device__ void _##TestClassName##__##TestName##_kernel( \
         GpuTestResult* _gpu_result, \
         TestClassName##__##TestName##_Test* _test_instance); \
     __global__ void TestClassName##__##TestName##_kernel( \
@@ -722,6 +722,106 @@ inline ::testing::AssertionResult LaunchGpuGeneratorTest(
         TestClassName##__##TestName##_Test* _test_instance) { \
           _##TestClassName##__##TestName##_kernel(_gpu_result, _test_instance); \
         } \
-    __host__ __device__ void _##TestClassName##__##TestName##_kernel( \
+    __device__ void _##TestClassName##__##TestName##_kernel( \
         GpuTestResult* _gpu_result, \
         TestClassName##__##TestName##_Test* _test_instance)
+#else // __CUDA_ARCH__
+// GPU generator test macro
+#define GPU_TEST_G(TestClassName, TestName) \
+    class TestClassName##__##TestName##_Test : public ::gpu_generator::GpuTestWithGenerator { \
+    public: \
+        void TestBody() override; \
+        void RunGpuTest(); \
+        void RunCpuTest() override; \
+    }; \
+    __global__ void TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance); \
+    inline ::gpu_generator::DynamicRangeGenerator* __gtest_generator__get_generator_##TestClassName##TestName() { \
+        return ::gpu_generator::CreateGenerator<TestClassName##__##TestName##_Test>( \
+            #TestClassName"."#TestName, ::gpu_generator::CreateTest<TestClassName##__##TestName##_Test>()); \
+    } \
+    INSTANTIATE_TEST_SUITE_P(Generator, TestClassName##__##TestName##_Test, \
+        testing::internal::ParamGenerator<int>(__gtest_generator__get_generator_##TestClassName##TestName())); \
+    TEST_P(TestClassName##__##TestName##_Test, __) { \
+        RunGpuTest(); \
+    } \
+    void TestClassName##__##TestName##_Test::TestBody() { \
+        RunGpuTest(); \
+    } \
+    void TestClassName##__##TestName##_Test::RunCpuTest() { \
+        auto* _test_instance = this; \
+        LaunchCpuGeneratorTestCount(TestClassName##__##TestName##_kernel, _test_instance); \
+    } \
+    void TestClassName##__##TestName##_Test::RunGpuTest() { \
+        auto* _test_instance = this; \
+        auto cfg = this->launch_cfg(); \
+        ASSERT_TRUE(LaunchGpuGeneratorTest( \
+            TestClassName##__##TestName##_kernel, _test_instance, cfg)); \
+    } \
+    __device__ void _##TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance); \
+    __global__ void TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance) { \
+          _##TestClassName##__##TestName##_kernel(_gpu_result, _test_instance); \
+        } \
+    __device__ void _##TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance) {} \
+    __device__ void __##TestClassName##__##TestName##__kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance)
+
+// GPU generator test with custom launch config
+#define GPU_TEST_G_CFG(TestClassName, TestName, GRID, BLOCK, ...) \
+    class TestClassName##__##TestName##_Test : public ::gpu_generator::GpuTestWithGenerator { \
+    public: \
+        void TestBody() override; \
+        void RunGpuTest(); \
+        void RunCpuTest(); \
+        GpuLaunchCfg launch_cfg() const override { \
+            return MakeLaunchCfg(GRID, BLOCK, ##__VA_ARGS__); \
+        } \
+    }; \
+    __global__ void TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance); \
+    inline ::gpu_generator::DynamicRangeGenerator* __gtest_generator__get_generator_##TestClassName##TestName() { \
+        return ::gpu_generator::CreateGenerator<TestClassName##__##TestName##_Test>( \
+            #TestClassName"."#TestName, ::gpu_generator::CreateTest<TestClassName##__##TestName##_Test>()); \
+    } \
+    INSTANTIATE_TEST_SUITE_P(Generator, TestClassName##__##TestName##_Test, \
+        testing::internal::ParamGenerator<int>(__gtest_generator__get_generator_##TestClassName##TestName())); \
+    TEST_P(TestClassName##__##TestName##_Test, __) { \
+        RunGpuTest(); \
+    } \
+    void TestClassName##__##TestName##_Test::TestBody() { \
+        RunGpuTest(); \
+    } \
+    void TestClassName##__##TestName##_Test::RunCpuTest() { \
+        auto* _test_instance = this; \
+        LaunchCpuGeneratorTestCount(TestClassName##__##TestName##_kernel, _test_instance); \
+    } \
+    void TestClassName##__##TestName##_Test::RunGpuTest() { \
+        auto* _test_instance = this; \
+        auto cfg = this->launch_cfg(); \
+        ASSERT_TRUE(LaunchGpuGeneratorTest( \
+            TestClassName##__##TestName##_kernel, _test_instance, cfg)); \
+    } \
+    __device__ void _##TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance); \
+    __global__ void TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance) { \
+          _##TestClassName##__##TestName##_kernel(_gpu_result, _test_instance); \
+        } \
+    __device__ void _##TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance) {} \
+    __device__ void __##TestClassName##__##TestName##_kernel( \
+        GpuTestResult* _gpu_result, \
+        TestClassName##__##TestName##_Test* _test_instance) 
+#endif // __CUDA_ARCH__

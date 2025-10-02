@@ -2,6 +2,7 @@
 #include "vector_add_2d.h"
 #include <cstdio>
 
+
 // Simple 2D vector addition kernel
 __global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;

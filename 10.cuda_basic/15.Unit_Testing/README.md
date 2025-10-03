@@ -6,8 +6,9 @@ This project demonstrates how to write unit tests for CUDA kernels using the GPU
 
 - `vector_add_2d.cu` - Optimized implementation of 2D vector operations with performance-focused kernels
 - `vector_add_2d.h` - Header file with kernel declarations
-- `test_vector_add_2d.cu` - Comprehensive unit tests using the GPU testing framework
-- `CMakeLists.txt` - Build configuration with Google Test integration
+- `test_vector_add_2d.cu` - Comprehensive unit tests using the GPU testing framework (direct inclusion method)
+- `test_vector_add_2d_with_lib.cu` - Unit tests using library-based testing approach
+- `CMakeLists.txt` - Build configuration with Google Test integration for both testing approaches
 
 ## Implemented Kernels
 
@@ -36,6 +37,111 @@ __global__ void reduceSum(const float* input, float* output, int N, int stride)
 - **Warp-level reduction**: Exploits warp synchronization for the final 32 threads
 - **Coalesced memory access**: Optimized for both regular and strided patterns
 - **Multiple elements per thread**: Reduces kernel launch overhead
+
+## Testing Approaches for CUDA Device Functions
+
+This project demonstrates two methods for testing CUDA device functions and kernels:
+
+### Method 1: Direct .cu File Inclusion (Recommended Default)
+
+**File:** `test_vector_add_2d.cu`
+
+This approach directly includes the CUDA implementation file in the test file, allowing access to all device functions, including `__device__` functions that are not normally accessible from external compilation units.
+
+**Advantages:**
+- Can test `__device__` functions directly
+- No need to create separate libraries
+- Simpler build configuration
+- Full access to implementation details for white-box testing
+- Better for unit testing individual device functions
+
+**Example:**
+```cuda
+// test_vector_add_2d.cu
+#include "vector_add_2d.cu"  // Direct inclusion of implementation
+
+GPU_TEST(DeviceFunctionTest, TestSquare) {
+    // Can directly test __device__ functions
+    float result = square(3.0f);
+    GPU_EXPECT_NEAR(result, 9.0f, 1e-5f);
+}
+```
+
+**CMake Configuration:**
+```cmake
+add_executable(${PROJECT_NAME}_test
+    test_vector_add_2d.cu
+    # Note: Don't include vector_add_2d.cu here since it's #included
+)
+```
+
+### Method 2: Library-Based Testing with Inline Functions
+
+**File:** `test_vector_add_2d_with_lib.cu`
+
+This approach creates a library from the CUDA code and tests it through its public interface. Device functions must be marked as `__device__ __inline__` in the header file to be accessible.
+
+**Advantages:**
+- Tests the actual library interface
+- Better for integration testing
+- Mimics real-world usage patterns
+- Enforces proper API design
+
+**Limitations:**
+- Cannot test private `__device__` functions unless they're inline
+- Requires more complex build setup
+- Need to manage library dependencies
+
+**Example:**
+```cuda
+// vector_add_2d.h - Functions must be inline
+__device__ __inline__ float square(float x) {
+    return x * x;
+}
+
+// test_vector_add_2d_with_lib.cu
+#include "vector_add_2d.h"  // Include header only
+
+GPU_TEST(LibraryTest, TestSquareViaLib) {
+    // Test inline device functions from header
+    float result = square(3.0f);
+    GPU_EXPECT_NEAR(result, 9.0f, 1e-5f);
+}
+```
+
+**CMake Configuration:**
+```cmake
+# Create library
+add_library(vector_add_lib STATIC
+    vector_add_2d.cu
+)
+
+# Create test executable
+add_executable(${PROJECT_NAME}_test_with_lib
+    test_vector_add_2d_with_lib.cu
+)
+
+# Link test with library
+target_link_libraries(${PROJECT_NAME}_test_with_lib
+    PRIVATE
+    vector_add_lib
+    GTest::gtest_main
+)
+```
+
+### Recommendation
+
+**Use Method 1 (Direct Inclusion) as the default** for most unit testing scenarios because:
+1. It provides complete access to all device functions for thorough testing
+2. Simpler to set up and maintain
+3. Better suited for unit testing individual components
+4. No need to expose internal functions in headers
+
+**Use Method 2 (Library-Based) when:**
+- Testing library APIs as they will be used by consumers
+- Performing integration tests
+- Working with pre-built libraries
+- Enforcing API boundaries
 
 ## Test Types Demonstrated
 
@@ -155,36 +261,79 @@ include(GoogleTest)
 
 ### Project-Specific CMakeLists.txt
 
-The Unit Testing project's CMakeLists.txt configures the test executable:
+The Unit Testing project's CMakeLists.txt configures both testing approaches:
 
+#### Method 1: Direct Inclusion Test (Default)
 ```cmake
-# Create test executable
-add_executable(15_Unit_Testing_test
+# Create test executable with direct .cu file inclusion
+add_executable(${PROJECT_NAME}_test
     test_vector_add_2d.cu
-    vector_add_2d.cu
+    # Note: vector_add_2d.cu is #included in test file, not compiled separately
 )
 
-# Include directories
-target_include_directories(15_Unit_Testing_test PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../common  # For gpu_gtest.h
-)
-
-# Link libraries
-target_link_libraries(15_Unit_Testing_test
-    CUDA::cudart
-    gtest
-    gtest_main
-)
-
-# Set CUDA compilation flags
-set_target_properties(15_Unit_Testing_test PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+# Link test with testing frameworks
+target_link_libraries(${PROJECT_NAME}_test
+    PRIVATE
+    GTest::gtest_main
+    GTestCudaGenerator
+    CudaCustomLib  # Custom CUDA utilities library
 )
 
 # Register tests with CTest
-gtest_discover_tests(15_Unit_Testing_test)
+gtest_discover_tests(${PROJECT_NAME}_test)
+```
+
+#### Method 2: Library-Based Test
+```cmake
+# Create test executable with library approach
+add_executable(${PROJECT_NAME}_test_with_library
+    test_vector_add_2d_with_lib.cu
+)
+
+# Link test with implementation library and testing frameworks
+target_link_libraries(${PROJECT_NAME}_test_with_library
+    PRIVATE
+    GTest::gtest_main
+    GTestCudaGenerator
+    CudaCustomLib
+    # Would link to vector_add_lib if using separate library
+)
+
+gtest_discover_tests(${PROJECT_NAME}_test_with_library)
+```
+
+#### Complete CMakeLists.txt Example
+```cmake
+cmake_minimum_required(VERSION 3.18)
+project(15_Unit_Testing CUDA CXX)
+
+# Method 1: Direct inclusion test (recommended default)
+add_executable(${PROJECT_NAME}_test
+    test_vector_add_2d.cu
+)
+
+target_link_libraries(${PROJECT_NAME}_test
+    PRIVATE
+    GTest::gtest_main
+    GTestCudaGenerator
+    CudaCustomLib
+)
+
+gtest_discover_tests(${PROJECT_NAME}_test)
+
+# Method 2: Library-based test
+add_executable(${PROJECT_NAME}_test_with_library
+    test_vector_add_2d_with_lib.cu
+)
+
+target_link_libraries(${PROJECT_NAME}_test_with_library
+    PRIVATE
+    GTest::gtest_main
+    GTestCudaGenerator
+    CudaCustomLib
+)
+
+gtest_discover_tests(${PROJECT_NAME}_test_with_library)
 ```
 
 ### Key Configuration Elements
@@ -227,15 +376,44 @@ cmake --build build --target 15_Unit_Testing_test
 
 ## Running Tests
 
+### Method 1: Direct Inclusion Tests (Default)
 ```bash
 # List all tests
-./build/10.cuda_basic/15.Unit\ Testing/15_Unit_Testing_test --gtest_list_tests
+./build/10.cuda_basic/15.Unit_Testing/15_Unit_Testing_test --gtest_list_tests
 
 # Run all tests
-./build/10.cuda_basic/15.Unit\ Testing/15_Unit_Testing_test
+./build/10.cuda_basic/15.Unit_Testing/15_Unit_Testing_test
 
 # Run specific test
-./build/10.cuda_basic/15.Unit\ Testing/15_Unit_Testing_test --gtest_filter="SimpleDeviceTest.*"
+./build/10.cuda_basic/15.Unit_Testing/15_Unit_Testing_test --gtest_filter="SimpleDeviceTest.*"
+```
+
+### Method 2: Library-Based Tests
+```bash
+# List all tests
+./build/10.cuda_basic/15.Unit_Testing/15_Unit_Testing_test_with_library --gtest_list_tests
+
+# Run all tests
+./build/10.cuda_basic/15.Unit_Testing/15_Unit_Testing_test_with_library
+
+# Run specific test
+./build/10.cuda_basic/15.Unit_Testing/15_Unit_Testing_test_with_library --gtest_filter="LibraryTest.*"
+```
+
+### Running Both Test Suites with CTest
+```bash
+# Run all tests from build directory
+cd build
+ctest --test-dir 10.cuda_basic/15.Unit_Testing
+
+# Run with verbose output
+ctest --test-dir 10.cuda_basic/15.Unit_Testing --verbose
+
+# Run only direct inclusion tests
+ctest -R "15_Unit_Testing_test$"
+
+# Run only library-based tests
+ctest -R "15_Unit_Testing_test_with_library"
 ```
 
 ## Test Output
@@ -304,26 +482,36 @@ cmake --build build --target 15_Unit_Testing_test
 
 ## Best Practices
 
-1. **Use appropriate test type**:
+1. **Choose the right testing approach**:
+   - **Direct inclusion (Method 1)** for unit testing device functions
+   - **Library-based (Method 2)** for integration testing and API validation
+   - Use direct inclusion as the default for new projects
+
+2. **Use appropriate test type**:
    - GPU_TEST for simple device function tests
    - GPU_TEST_CFG when you need specific thread configurations
    - GPU_TEST_F for tests requiring complex setup/teardown
-   - GPU_TEST_P for testing with multiple input values
+   - GPU_TEST_G for testing with multiple input values using generators
 
-2. **Memory management**:
+3. **Memory management**:
    - Always check CUDA error codes
    - Free allocated memory in teardown
    - Use RAII patterns where possible
 
-3. **Test organization**:
+4. **Test organization**:
    - Group related tests in test suites
    - Use descriptive test names
    - Test both success and edge cases
 
-4. **Synchronization**:
+5. **Synchronization**:
    - Remember that GPU tests are asynchronous
    - Use proper synchronization for host tests
    - Check both launch and execution errors
+
+6. **Testing strategy**:
+   - Start with direct inclusion for complete coverage
+   - Add library-based tests for public API validation
+   - Use both approaches when testing complex libraries
 
 ## Performance Optimizations Demonstrated
 
@@ -355,3 +543,18 @@ This implementation incorporates the best practices from Part 14 (Code Inspectio
 - Performance-oriented kernel design
 - Testing framework for verification
 - Ready for profiling with Nsight tools
+
+## Summary: Testing Approaches
+
+This unit testing example demonstrates two complementary approaches for testing CUDA code:
+
+1. **Direct .cu File Inclusion (Default Method)**: Best for unit testing with full access to device functions
+2. **Library-Based Testing**: Best for integration testing and API validation
+
+**For future examples in this tutorial series, we will use the direct inclusion method as the default** because it provides:
+- Complete testability of all device functions
+- Simpler setup and maintenance
+- Better educational value for understanding CUDA internals
+- No need to modify implementation code for testing
+
+The library-based approach remains available for scenarios requiring true black-box testing or when working with pre-compiled CUDA libraries.

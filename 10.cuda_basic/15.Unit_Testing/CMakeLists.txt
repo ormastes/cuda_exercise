@@ -16,6 +16,8 @@ target_link_libraries(${PROJECT_NAME}_test
     CudaCustomLib  # Link our custom CUDA utilities library
 )
 
+gtest_discover_tests(${PROJECT_NAME}_test)
+
 
 # Create test executable with implementation library
 add_executable(${PROJECT_NAME}_test_with_library

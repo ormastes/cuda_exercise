@@ -507,7 +507,7 @@ __global__ void convolution1D(float* output, float* input, int n) {
 ### **CMakeLists.txt**
 ```cmake
 cmake_minimum_required(VERSION 3.18)
-project(23_SharedMemory CUDA)
+project(23_Shared_Memory CUDA)
 
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_ARCHITECTURES "70;75;80;86")

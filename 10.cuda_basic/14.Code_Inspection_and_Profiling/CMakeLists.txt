@@ -1,5 +1,5 @@
 
-project(14_CodeInspectionAndProfiling)
+project(14_Code_Inspection_And_Profiling)
 
 # Main example with NVTX, coalescing, and memory error demos
 add_executable(${PROJECT_NAME} vector_add_2d.cu)
@@ -8,7 +8,8 @@ target_link_libraries(${PROJECT_NAME}
 PRIVATE
     ${CUDA_BASIC_LIB}
     CudaCustomLib  # Link our custom CUDA utilities library
-    dl  # Required for NVTX dynamic loading
+    ${NVTX_PLATFORM_LIBS} # Link platform-specific libraries if needed
+
 )
 
 # Memory errors demonstration executable

@@ -636,7 +636,7 @@ int main() {
 ### **CMakeLists.txt**
 ```cmake
 cmake_minimum_required(VERSION 3.18)
-project(25_DynamicParallelism CUDA)
+project(25_Dynamic_Parallelism CUDA)
 
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_ARCHITECTURES "70;75;80;86")

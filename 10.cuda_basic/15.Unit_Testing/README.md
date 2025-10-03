@@ -1,4 +1,6 @@
-# Unit Testing for CUDA with GPU Testing Framework
+# 🧪 Part 15: Unit Testing for CUDA
+
+**Goal**: Implement comprehensive testing for CUDA kernels using custom GPU testing framework with GTest integration.
 
 This project demonstrates how to write unit tests for CUDA kernels using the GPU testing framework (gpu_gtest.h) that allows tests to run directly on the GPU.
 
@@ -12,11 +14,11 @@ This project demonstrates how to write unit tests for CUDA kernels using the GPU
 
 ## Implemented Kernels
 
-### 1. `vectorAdd2D`
+### 1. `vector_add_2d`
 Optimized 2D vector addition kernel with strided memory access pattern (column-major in row-major storage).
 
 ```cuda
-__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height)
+__global__ void vector_add_2d(const float* A, const float* B, float* C, int width, int height)
 ```
 
 **Features:**
@@ -24,11 +26,11 @@ __global__ void vectorAdd2D(const float* A, const float* B, float* C, int width,
 - Incorporates `square()` device function for computation
 - Demonstrates memory coalescing challenges
 
-### 2. `reduceSum`
+### 2. `reduce_sum`
 High-performance reduction kernel with grid-stride loop and optimized memory access.
 
 ```cuda
-__global__ void reduceSum(const float* input, float* output, int N, int stride)
+__global__ void reduce_sum(const float* input, float* output, int N, int stride)
 ```
 
 **Features:**
@@ -516,13 +518,13 @@ ctest -R "15_Unit_Testing_test_with_library"
 ## Performance Optimizations Demonstrated
 
 ### Memory Access Patterns
-The `vectorAdd2D` kernel intentionally uses a strided access pattern (column-major indexing) to demonstrate:
+The `vector_add_2d` kernel intentionally uses a strided access pattern (column-major indexing) to demonstrate:
 - Performance impact of non-coalesced memory access
 - How strided patterns affect memory bandwidth
 - Testing scenarios for memory-bound kernels
 
 ### Reduction Optimization Techniques
-The `reduceSum` kernel showcases several optimization strategies:
+The `reduce_sum` kernel showcases several optimization strategies:
 
 1. **Grid-Stride Loops**: Allows kernels to process datasets larger than the grid size
 2. **Loop Unrolling**: Template-based compile-time optimization for known block sizes

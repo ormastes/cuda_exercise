@@ -28,7 +28,7 @@ private:
     std::atomic<int> processedCount{0};
 
 public:
-    void addCompletedBatch(BatchData* batch) {
+    void add_completed_batch(BatchData* batch) {
         std::lock_guard<std::mutex> lock(mtx);
         completedBatches.push(batch);
         processedCount++;
@@ -48,7 +48,7 @@ public:
     }
 };
 
-__global__ void processBatch(float* data, float* result, int size) {
+__global__ void process_batch(float* data, float* result, int size) {
     __shared__ float sharedSum[256];
 
     int tid = threadIdx.x;
@@ -91,10 +91,10 @@ void CUDART_CB streamCallback(cudaStream_t stream, cudaError_t status, void* use
            batch->batchId, batch->stream, batch->result);
 
     CallbackManager* manager = (CallbackManager*)((void**)userData)[1];
-    manager->addCompletedBatch(batch);
+    manager->add_completed_batch(batch);
 }
 
-void postProcessingThread(CallbackManager* manager, int totalBatches) {
+void post_processing_thread(CallbackManager* manager, int totalBatches) {
     int processed = 0;
     float totalResult = 0.0f;
 
@@ -151,7 +151,7 @@ int main() {
         cudaMalloc(&d_results[i], sizeof(float));
     }
 
-    std::thread cpuThread(postProcessingThread, &callbackManager, NUM_BATCHES);
+    std::thread cpuThread(post_processing_thread, &callbackManager, NUM_BATCHES);
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -175,7 +175,7 @@ int main() {
 
         cudaMemsetAsync(d_results[streamIdx], 0, sizeof(float), stream);
 
-        processBatch<<<blocksPerGrid, threadsPerBlock, 0, stream>>>(
+        process_batch<<<blocksPerGrid, threadsPerBlock, 0, stream>>>(
             batch->deviceData, d_results[streamIdx], BATCH_SIZE);
 
         cudaMemcpyAsync(&batch->result, d_results[streamIdx], sizeof(float),

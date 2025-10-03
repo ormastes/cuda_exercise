@@ -642,7 +642,7 @@ int main() {
 ### **CMakeLists.txt**
 ```cmake
 cmake_minimum_required(VERSION 3.18)
-project(24_MemoryCoalescingBankConflicts CUDA)
+project(24_Memory_Coalescing_And_Bank_Conflicts CUDA)
 
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_ARCHITECTURES "70;75;80;86")

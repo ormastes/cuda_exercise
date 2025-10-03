@@ -7,7 +7,7 @@ __device__ float square(float x) {
     return x * x;
 }
 
-__global__ void reduceSum(const float* input, float* output, int N) {
+__global__ void reduce_sum(const float* input, float* output, int N) {
     extern __shared__ float sdata[];
 
     unsigned int tid = threadIdx.x;
@@ -46,7 +46,7 @@ __global__ void reduceSum(const float* input, float* output, int N) {
     }
 }
 
-__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height) {
+__global__ void vector_add_2d(const float* A, const float* B, float* C, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int i = y * width + x;
@@ -56,7 +56,7 @@ __global__ void vectorAdd2D(const float* A, const float* B, float* C, int width,
     }
 }
 
-void testVectorAdd2D() {
+void test_vector_add_2d() {
     int width = 1024;
     int height = 1024;
     int N = width * height;
@@ -81,7 +81,7 @@ void testVectorAdd2D() {
 
     dim3 threads(16, 16);
     dim3 blocks((width + 15)/16, (height + 15)/16);
-    vectorAdd2D<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
+    vector_add_2d<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
 
     cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
 
@@ -92,7 +92,7 @@ void testVectorAdd2D() {
     free(h_A); free(h_B); free(h_C);
 }
 
-void testReduceSum() {
+void test_reduce_sum() {
     const int N = 1024 * 1024;
     const int blockSize = 256;
     const int numBlocks = (N + blockSize - 1) / blockSize;
@@ -121,7 +121,7 @@ void testReduceSum() {
 
     // Launch kernel with dynamic shared memory
     size_t sharedMemSize = blockSize * sizeof(float);
-    reduceSum<<<numBlocks, blockSize, sharedMemSize>>>(d_input, d_output, N);
+    reduce_sum<<<numBlocks, blockSize, sharedMemSize>>>(d_input, d_output, N);
 
     // Copy result back to host
     cudaMemcpy(&h_output, d_output, sizeof(float), cudaMemcpyDeviceToHost);
@@ -154,11 +154,11 @@ int main() {
 
     // Run tests
     std::cout << "=== Testing VectorAdd2D ===" << std::endl;
-    testVectorAdd2D();
+    test_vector_add_2d();
     std::cout << std::endl;
 
     std::cout << "=== Testing ReduceSum ===" << std::endl;
-    testReduceSum();
+    test_reduce_sum();
 
     return 0;
 }

@@ -2,6 +2,15 @@
 
 **Goal**: Master CUDA code analysis, error detection, and performance profiling using NVIDIA's comprehensive tool suite.
 
+## Project Structure
+```
+14.Code_Inspection_and_Profiling/
+├── README.md                - Profiling guide and tool usage
+├── CMakeLists.txt           - Build with profiling support
+├── vector_add_2d.cu         - Memory access pattern examples
+└── memory_errors.cu         - Intentional errors for sanitizer demos
+```
+
 ---
 
 ## **14.1 Overview**
@@ -96,7 +105,7 @@ endif()
 **Current Project CMakeLists.txt:**
 
 ```cmake
-project(14_CodeInspectionAndProfiling)
+project(14_Code_Inspection_And_Profiling)
 
 add_executable(${PROJECT_NAME} vector_add_2d.cu)
 add_profiling_targets(${PROJECT_NAME})
@@ -142,18 +151,18 @@ cmake -DCMAKE_BUILD_TYPE=Profile -DENABLE_PROFILING=ON -DVERBOSE_PTXAS=ON -B bui
 ninja -C build_profile
 
 # Run profiling (results saved in gen/ folder with timestamps)
-ninja -C build_profile 14_CodeInspectionAndProfiling_profile
+ninja -C build_profile 14_Code_Inspection_And_Profiling_profile
 ```
 
 **Profile Output Structure:**
 ```
 build_profile/gen/
-├── 14_CodeInspectionAndProfiling_20250113_143052/
+├── 14_Code_Inspection_And_Profiling_20250113_143052/
 │   ├── nsys_report.nsys-rep      # Nsight Systems timeline
 │   ├── nsys_report.sqlite        # SQLite database for analysis
 │   ├── ncu_report.ncu-rep        # Nsight Compute kernel metrics
 │   └── sanitizer_report.txt      # Compute Sanitizer results
-└── 14_CodeInspectionAndProfiling_20250113_144523/
+└── 14_Code_Inspection_And_Profiling_20250113_144523/
     └── ...                        # Next profiling run
 ```
 
@@ -164,7 +173,7 @@ build_profile/gen/
 **Nsight Systems CLI:**
 ```bash
 # Navigate to results directory
-cd build_profile/gen/14_CodeInspectionAndProfiling_20250113_143052/
+cd build_profile/gen/14_Code_Inspection_And_Profiling_20250113_143052/
 
 # Generate summary statistics
 nsys stats nsys_report.nsys-rep
@@ -281,7 +290,7 @@ For VSCode users, install these extensions for better visualization:
 
 Open results in VSCode:
 ```bash
-code build_profile/gen/14_CodeInspectionAndProfiling_*/
+code build_profile/gen/14_Code_Inspection_And_Profiling_*/
 ```
 
 ---
@@ -585,7 +594,7 @@ ninja -C build memory_errors_initcheck  # Uninitialized memory
 # Memcheck output (769 errors detected)
 ========= COMPUTE-SANITIZER
 ========= Invalid __global__ write of size 4 bytes
-=========     at misalignedAccessKernel(char *, int)+0x380 in memory_errors.cu:61
+=========     at misaligned_access_kernel(char *, int)+0x380 in memory_errors.cu:61
 =========     by thread (65,0,0) in block (0,0,0)
 =========     Access to 0x7bd889c03041 is misaligned
 =========     and is inside the nearest allocation at 0x7bd889c03000 of size 1,024 bytes
@@ -594,30 +603,30 @@ ninja -C build memory_errors_initcheck  # Uninitialized memory
 
 # Racecheck output
 ========= COMPUTE-SANITIZER
-========= Error: Race reported between Write access at buggyKernel(float *, int)+0x580
+========= Error: Race reported between Write access at buggy_kernel(float *, int)+0x580
 =========     in memory_errors.cu:25
-=========     and Read access at buggyKernel(float *, int)+0x890 in memory_errors.cu:31
+=========     and Read access at buggy_kernel(float *, int)+0x890 in memory_errors.cu:31
 =========     [4080 hazards]
 ========= RACECHECK SUMMARY: 1 hazard displayed (1 error, 0 warnings)
 
 # Initcheck output
 ========= COMPUTE-SANITIZER
 ========= Uninitialized __global__ memory read of size 4 bytes
-=========     at uninitializedAccessKernel+0x2a0 in memory_errors.cu:49
+=========     at uninitialized_access_kernel+0x2a0 in memory_errors.cu:49
 =========     by thread (0,0,0) in block (0,0,0)
 ========= INITCHECK SUMMARY: 1 error
 
 # Note: Synccheck does NOT detect conditional __syncthreads() bugs and shows 0 errors
 ```
 
-**Important Note:** The conditional `__syncthreads()` in `buggyKernel` (line 36) is NOT detected by synccheck. This is a known limitation - synccheck primarily detects illegal barriers in divergent code paths but may miss some cases of conditional synchronization.
+**Important Note:** The conditional `__syncthreads()` in `buggy_kernel` (line 36) is NOT detected by synccheck. This is a known limitation - synccheck primarily detects illegal barriers in divergent code paths but may miss some cases of conditional synchronization.
 
 ### **14.4.6 Example: Detecting Common Errors**
 
 **Two demonstration programs for error detection:**
 
 1. **memory_errors.cu** - Standalone program with multiple intentional bugs
-2. **vector_add_2d.cu** - Includes `vectorAdd2D_WithBug` kernel and `--memory-error` mode
+2. **vector_add_2d.cu** - Includes `vector_add_2d_with_bug` kernel and `--memory-error` mode
 
 **File: `memory_errors.cu` - Example with intentional errors for sanitizer testing**
 
@@ -637,7 +646,7 @@ This standalone program is included in the project. Key sections from the file:
     } \
 } while(0)
 
-__global__ void buggyKernel(float* data, int n) {
+__global__ void buggy_kernel(float* data, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     // Error 1: Out-of-bounds access
@@ -672,7 +681,7 @@ int main() {
     CHECK_CUDA(cudaMalloc(&d_data, size));
 
     // Launch kernel with bugs
-    buggyKernel<<<numBlocks, blockSize>>>(d_data, N);
+    buggy_kernel<<<numBlocks, blockSize>>>(d_data, N);
 
     CHECK_CUDA(cudaDeviceSynchronize());
     CHECK_CUDA(cudaFree(d_data));
@@ -925,7 +934,7 @@ cmake -DCMAKE_BUILD_TYPE=Profile -B build_profile
 ninja -C build_profile
 
 # Profile with Nsight Systems
-nsys profile --stats=true --trace=cuda,nvtx,osrt -o nvtx_report ./14_CodeInspectionAndProfiling
+nsys profile --stats=true --trace=cuda,nvtx,osrt -o nvtx_report ./14_Code_Inspection_And_Profiling
 
 # View NVTX summary
 nsys stats --report nvtx_sum nvtx_report.nsys-rep
@@ -1058,8 +1067,8 @@ Memory coalescing is crucial for GPU performance. When threads in a warp access 
 **Good Pattern (Coalesced):**
 ```cuda
 // Threads access consecutive memory locations
-__global__ void vectorAdd2D_Coalesced(const float* A, const float* B, float* C,
-                                      int width, int height) {
+__global__ void vector_add_2d_coalesced(const float* A, const float* B, float* C,
+                                        int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int i = y * width + x;  // Row-major access pattern
@@ -1073,7 +1082,7 @@ __global__ void vectorAdd2D_Coalesced(const float* A, const float* B, float* C,
 **Poor Pattern (Strided):**
 ```cuda
 // Threads access strided memory locations
-__global__ void vectorAdd2D_Strided(const float* A, const float* B, float* C,
+__global__ void vector_add_2d_strided(const float* A, const float* B, float* C,
                                     int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1212,12 +1221,12 @@ The example code uses NVTX markers to identify different memory access patterns 
 
 ```cpp
 nvtxRangePush("Coalesced Kernel Execution");
-vectorAdd2D_Coalesced<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
+vector_add_2d_coalesced<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
 cudaDeviceSynchronize();
 nvtxRangePop();
 
 nvtxRangePush("Strided Kernel Execution");
-vectorAdd2D_Strided<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
+vector_add_2d_strided<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
 cudaDeviceSynchronize();
 nvtxRangePop();
 ```
@@ -1256,14 +1265,14 @@ The project includes `vector_add_2d.cu` which demonstrates:
 ```bash
 # Build the project
 cmake -DCMAKE_BUILD_TYPE=Profile -B build_profile
-cmake --build build_profile --target 14_CodeInspectionAndProfiling
+cmake --build build_profile --target 14_Code_Inspection_And_Profiling
 cmake --build build_profile --target memory_errors
 
 # Run main executable
 cd build_profile/10.cuda_basic/14.Code_Inspection_and_Profiling
 
 # Default mode output:
-./14_CodeInspectionAndProfiling
+./14_Code_Inspection_And_Profiling
 Using device: NVIDIA RTX A6000
 Compute capability: 8.6
 Shared memory per block: 49152 bytes
@@ -1301,7 +1310,7 @@ Test 4: Shared memory bank conflicts...
 
 ```bash
 # Profile with Nsight Systems (NVTX visualization)
-$ nsys profile --stats=true --trace=cuda,nvtx,osrt -o nvtx_profile ./14_CodeInspectionAndProfiling
+$ nsys profile --stats=true --trace=cuda,nvtx,osrt -o nvtx_profile ./14_Code_Inspection_And_Profiling
 
 Generating '/tmp/nsys-report-xxxxxx.qdstrm'
 [1/8] [========================100%] timeline.nsys-rep
@@ -1309,10 +1318,10 @@ Generating '/tmp/nsys-report-xxxxxx.qdstrm'
 # CUDA Kernel Summary (sorted by time):
 Time (%)  Total Time (ns)  Instances  Avg (ns)  Med (ns)  Min (ns)  Max (ns)  Name
 --------  ---------------  ---------  --------  --------  --------  --------  ------------------------
-   45.1           76,320          1  76,320.0  76,320.0    76,320    76,320  reduceSum
-   22.6           38,240          1  38,240.0  38,240.0    38,240    38,240  reduceSum_Strided
-   17.2           29,184          1  29,184.0  29,184.0    29,184    29,184  vectorAdd2D_Strided
-   15.1           25,503          1  25,503.0  25,503.0    25,503    25,503  vectorAdd2D_Coalesced
+   45.1           76,320          1  76,320.0  76,320.0    76,320    76,320  reduce_sum
+   22.6           38,240          1  38,240.0  38,240.0    38,240    38,240  reduce_sum_strided
+   17.2           29,184          1  29,184.0  29,184.0    29,184    29,184  vector_add_2d_strided
+   15.1           25,503          1  25,503.0  25,503.0    25,503    25,503  vector_add_2d_coalesced
 
 # CUDA API Calls Summary:
 Time (%)  Total Time (ns)  Num Calls    Avg (ns)     Med (ns)    Min (ns)    Max (ns)  Name
@@ -1322,10 +1331,10 @@ Time (%)  Total Time (ns)  Num Calls    Avg (ns)     Med (ns)    Min (ns)    Max
     0.9        1,237,738          9     137,526.4     152,049       4,509      197,146  cudaFree
 
 # Profile with Nsight Compute (basic metrics)
-ncu --set basic ./14_CodeInspectionAndProfiling
+ncu --set basic ./14_Code_Inspection_And_Profiling
 ==PROF== Profiling "vectorAdd2D_Coalesced" - 0: 0%....50%....100% - 8 passes
-==PROF== Profiling "reduceSum" - 1: 0%....50%....100% - 8 passes
-==PROF== Profiling "reduceSum_Strided" - 2: 0%....50%....100% - 8 passes
+==PROF== Profiling "reduce_sum" - 1: 0%....50%....100% - 8 passes
+==PROF== Profiling "reduce_sum_strided" - 2: 0%....50%....100% - 8 passes
 
 # Note: Memory efficiency metrics names have changed in newer NCU versions.
 # Use --set full or --set detailed for comprehensive memory analysis.
@@ -1339,22 +1348,22 @@ compute-sanitizer --tool initcheck ./memory_errors   # Uninitialized memory dete
 
 **Key Kernels in vector_add_2d.cu:**
 
-1. **vectorAdd2D_Coalesced** (lines 40-48): Row-major access pattern (good coalescing)
+1. **vector_add_2d_coalesced** (lines 13-21): Row-major access pattern (good coalescing)
    - Adjacent threads access adjacent memory locations
    - High memory efficiency (~95% typical)
    - Uses `y * width + x` indexing for row-major access
 
-2. **vectorAdd2D_Strided** (lines 51-59): Column-major access in row-major storage (poor coalescing)
+2. **vector_add_2d_strided** (lines 51-59): Column-major access in row-major storage (poor coalescing)
    - Adjacent threads access strided memory locations
    - Low memory efficiency (~20-30% typical)
    - Uses `x * height + y` indexing causing strided access
 
-3. **vectorAdd2D_WithBug** (lines 62-69): Missing boundary checks (for error detection)
+3. **vector_add_2d_with_bug** (lines 62-69): Missing boundary checks (for error detection)
    - Demonstrates out-of-bounds access
    - Use with compute-sanitizer to detect errors
    - Intentionally missing boundary checks for sanitizer testing
 
-4. **reduceSum** (lines 12-37): Shared memory reduction with atomic operations
+4. **reduce_sum** (lines 12-37): Shared memory reduction with atomic operations
    - Shows shared memory usage patterns
    - Demonstrates synchronization requirements
    - Uses extern shared memory and atomic operations
@@ -1363,15 +1372,15 @@ compute-sanitizer --tool initcheck ./memory_errors   # Uninitialized memory dete
 
 The implementation uses hierarchical NVTX ranges throughout:
 ```cpp
-void testVectorAdd2D_Coalesced() {
-    nvtxRangePush("testVectorAdd2D_Coalesced");
+void test_vector_add_2d_coalesced() {
+    nvtxRangePush("test_vector_add_2d_coalesced");
 
     nvtxRangePush("Host Memory Allocation");
     // ... allocation code ...
     nvtxRangePop();
 
     nvtxRangePush("Coalesced Kernel Execution");
-    vectorAdd2D_Coalesced<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
+    vector_add_2d_coalesced<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
     cudaDeviceSynchronize();
     nvtxRangePop();
 
@@ -1581,16 +1590,16 @@ int main() {
 **Running the Memory Pattern Comparison:**
 ```bash
 # Run comparison mode
-./build_profile/10.cuda_basic/14.Code_Inspection_and_Profiling/14_CodeInspectionAndProfiling --compare
+./build_profile/10.cuda_basic/14.Code_Inspection_and_Profiling/14_Code_Inspection_And_Profiling --compare
 
 # Profile memory efficiency for coalesced pattern
-ncu --metrics gld_efficiency,gst_efficiency --kernel-name ".*Coalesced" ./14_CodeInspectionAndProfiling
+ncu --metrics gld_efficiency,gst_efficiency --kernel-name ".*Coalesced" ./14_Code_Inspection_And_Profiling
 
 # Profile memory efficiency for strided pattern
-ncu --metrics gld_efficiency,gst_efficiency --kernel-name ".*Strided" ./14_CodeInspectionAndProfiling --strided
+ncu --metrics gld_efficiency,gst_efficiency --kernel-name ".*Strided" ./14_Code_Inspection_And_Profiling --strided
 
 # Detailed kernel analysis
-ncu --set full ./14_CodeInspectionAndProfiling --compare
+ncu --set full ./14_Code_Inspection_And_Profiling --compare
 ```
 
 ### **14.8.2 Occupancy Issues**
@@ -1834,13 +1843,13 @@ All CMake targets have been simplified and now work correctly:
 
 ```bash
 # Build targets
-cmake --build build_profile --target 14_CodeInspectionAndProfiling
+cmake --build build_profile --target 14_Code_Inspection_And_Profiling
 cmake --build build_profile --target memory_errors
 
 # Analysis targets (simplified, no timestamps)
-cmake --build build_profile --target 14_CodeInspectionAndProfiling_coalescing_analysis
-cmake --build build_profile --target 14_CodeInspectionAndProfiling_nvtx_timeline
-cmake --build build_profile --target 14_CodeInspectionAndProfiling_memory_error_check
+cmake --build build_profile --target 14_Code_Inspection_And_Profiling_coalescing_analysis
+cmake --build build_profile --target 14_Code_Inspection_And_Profiling_nvtx_timeline
+cmake --build build_profile --target 14_Code_Inspection_And_Profiling_memory_error_check
 cmake --build build_profile --target memory_errors_all_checks
 cmake --build build_profile --target memory_errors_memcheck
 cmake --build build_profile --target memory_errors_racecheck
@@ -1855,7 +1864,7 @@ $ cmake --build build_profile --target memory_errors_memcheck
 [100%] Running memcheck on memory_errors
 ========= COMPUTE-SANITIZER
 ========= Invalid __global__ write of size 4 bytes
-=========     at misalignedAccessKernel(char *, int)+0x380 in memory_errors.cu:61
+=========     at misaligned_access_kernel(char *, int)+0x380 in memory_errors.cu:61
 =========     by thread (65,0,0) in block (0,0,0)
 =========     Access to 0x7bd889c03041 is misaligned
 =========     and is inside the nearest allocation at 0x7bd889c03000 of size 1,024 bytes
@@ -1866,9 +1875,9 @@ $ cmake --build build_profile --target memory_errors_memcheck
 $ cmake --build build_profile --target memory_errors_racecheck
 [100%] Running racecheck on memory_errors
 ========= COMPUTE-SANITIZER
-========= Error: Race reported between Write access at buggyKernel(float *, int)+0x580
+========= Error: Race reported between Write access at buggy_kernel(float *, int)+0x580
 =========     in memory_errors.cu:25
-=========     and Read access at buggyKernel(float *, int)+0x890 in memory_errors.cu:31
+=========     and Read access at buggy_kernel(float *, int)+0x890 in memory_errors.cu:31
 =========     [4080 hazards]
 ========= RACECHECK SUMMARY: 1 hazard displayed (1 error, 0 warnings)
 
@@ -1876,7 +1885,7 @@ $ cmake --build build_profile --target memory_errors_initcheck
 [100%] Running initcheck on memory_errors
 ========= COMPUTE-SANITIZER
 ========= Uninitialized __global__ memory read of size 4 bytes
-=========     at uninitializedAccessKernel+0x2a0 in memory_errors.cu:49
+=========     at uninitialized_access_kernel+0x2a0 in memory_errors.cu:49
 =========     by thread (0,0,0) in block (0,0,0)
 ========= INITCHECK SUMMARY: 1 error
 ```
@@ -1884,12 +1893,12 @@ $ cmake --build build_profile --target memory_errors_initcheck
 ### **Coalescing Analysis Output**
 
 ```bash
-$ cmake --build build_profile --target 14_CodeInspectionAndProfiling_coalescing_analysis
-[ 66%] Built target 14_CodeInspectionAndProfiling
+$ cmake --build build_profile --target 14_Code_Inspection_And_Profiling_coalescing_analysis
+[ 66%] Built target 14_Code_Inspection_And_Profiling
 [100%] Analyzing memory coalescing patterns
 === Analyzing Memory Coalescing Patterns ===
 Analysis saved to: /home/ormastes/dev/pub/cuda_exercise/build_profile/gen/coalescing_analysis/
-[100%] Built target 14_CodeInspectionAndProfiling_coalescing_analysis
+[100%] Built target 14_Code_Inspection_And_Profiling_coalescing_analysis
 
 # Files generated:
 - coalesced_output.txt   # Output from coalesced memory access
@@ -1917,18 +1926,18 @@ Strided Optimized: 243.341 GB/s
 ### **NVTX Timeline Generation**
 
 ```bash
-$ cmake --build build_profile --target 14_CodeInspectionAndProfiling_nvtx_timeline
-[ 66%] Built target 14_CodeInspectionAndProfiling
+$ cmake --build build_profile --target 14_Code_Inspection_And_Profiling_nvtx_timeline
+[ 66%] Built target 14_Code_Inspection_And_Profiling
 [100%] Profiling NVTX markers and generating timeline
 === Generating NVTX Timeline ===
 
 # Kernel execution times from Nsight Systems:
 Time (%)  Total Time (ns)  Instances  Avg (ns)  Med (ns)  Min (ns)  Max (ns)  Name
 --------  ---------------  ---------  --------  --------  --------  --------  ------------
-   45.1           76,320          1  76,320.0  76,320.0    76,320    76,320  reduceSum
-   22.6           38,240          1  38,240.0  38,240.0    38,240    38,240  reduceSum_Strided
-   17.2           29,184          1  29,184.0  29,184.0    29,184    29,184  vectorAdd2D_Strided
-   15.1           25,503          1  25,503.0  25,503.0    25,503    25,503  vectorAdd2D_Coalesced
+   45.1           76,320          1  76,320.0  76,320.0    76,320    76,320  reduce_sum
+   22.6           38,240          1  38,240.0  38,240.0    38,240    38,240  reduce_sum_strided
+   17.2           29,184          1  29,184.0  29,184.0    29,184    29,184  vector_add_2d_strided
+   15.1           25,503          1  25,503.0  25,503.0    25,503    25,503  vector_add_2d_coalesced
 
 # Memory transfer statistics:
 Total (MB)  Count  Avg (MB)  Operation
@@ -1943,7 +1952,7 @@ Generated:
 
 NVTX timeline saved to: build_profile/gen/nvtx_timeline/timeline.nsys-rep
 View with: nsys-ui build_profile/gen/nvtx_timeline/timeline.nsys-rep
-[100%] Built target 14_CodeInspectionAndProfiling_nvtx_timeline
+[100%] Built target 14_Code_Inspection_And_Profiling_nvtx_timeline
 ```
 
 ### **Important Note on Conditional __syncthreads()**

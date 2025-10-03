@@ -136,7 +136,7 @@ __device__ float square(float x) {
 }
 
 // Kernel function: runs on GPU, callable from CPU
-__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height) {
+__global__ void vector_add_2d(const float* A, const float* B, float* C, int width, int height) {
     // Calculate global thread position in 2D grid
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -184,7 +184,7 @@ int main() {
     dim3 blocks((width + 15)/16, (height + 15)/16);  // Calculate grid size
     
     // Step 6: Launch kernel
-    vectorAdd2D<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
+    vector_add_2d<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
 
     // Step 7: Copy results back from device to host
     cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
@@ -206,7 +206,7 @@ int main() {
 | Concept | Code Example | Purpose |
 |---------|--------------|---------|
 | **Device Function** | `__device__ float square()` | Helper function for GPU |
-| **Kernel Function** | `__global__ void vectorAdd2D()` | Main GPU computation |
+| **Kernel Function** | `__global__ void vector_add_2d()` | Main GPU computation |
 | **Thread Indexing** | `blockIdx.x * blockDim.x + threadIdx.x` | Global thread position |
 | **2D to 1D Mapping** | `y * width + x` | Convert 2D coord to array index |
 | **Grid Configuration** | `dim3 blocks((width+15)/16, ...)` | Calculate number of blocks |

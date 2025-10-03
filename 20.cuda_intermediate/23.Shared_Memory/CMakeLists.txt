@@ -1,4 +1,4 @@
-project(23_SharedMemory)
+project(23_Shared_Memory)
 
 # Matrix transpose example
 add_executable(${PROJECT_NAME}_matrix_transpose matrix_transpose.cu)

@@ -12,7 +12,7 @@
 } while(0)
 
 // Kernel with multiple intentional bugs for demonstrating sanitizer capabilities
-__global__ void buggyKernel(float* data, int n) {
+__global__ void buggy_kernel(float* data, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     // Error 1: Out-of-bounds access
@@ -39,7 +39,7 @@ __global__ void buggyKernel(float* data, int n) {
 }
 
 // Kernel with uninitialized memory access
-__global__ void uninitializedAccessKernel(float* output, float* input, int n) {
+__global__ void uninitialized_access_kernel(float* output, float* input, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     // BUG: Using uninitialized local variable
@@ -52,7 +52,7 @@ __global__ void uninitializedAccessKernel(float* output, float* input, int n) {
 }
 
 // Kernel with misaligned access
-__global__ void misalignedAccessKernel(char* data, int n) {
+__global__ void misaligned_access_kernel(char* data, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < n - sizeof(int)) {
@@ -63,7 +63,7 @@ __global__ void misalignedAccessKernel(char* data, int n) {
 }
 
 // Kernel demonstrating shared memory bank conflicts
-__global__ void bankConflictKernel(float* output, float* input, int n) {
+__global__ void bank_conflict_kernel(float* output, float* input, int n) {
     __shared__ float sdata[256];
     int tid = threadIdx.x;
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -78,7 +78,7 @@ __global__ void bankConflictKernel(float* output, float* input, int n) {
     }
 }
 
-void demonstrateMemoryErrors() {
+void demonstrate_memory_errors() {
     printf("=== Demonstrating Memory Errors for Sanitizer Testing ===\n");
     printf("Run with compute-sanitizer to detect these issues:\n");
     printf("  compute-sanitizer --tool memcheck ./memory_errors\n");
@@ -104,7 +104,7 @@ void demonstrateMemoryErrors() {
     CHECK_CUDA(cudaMemset(d_input, 0, size));
 
     printf("Test 1: Out-of-bounds and race condition errors...\n");
-    buggyKernel<<<numBlocks, blockSize>>>(d_data, N);
+    buggy_kernel<<<numBlocks, blockSize>>>(d_data, N);
     cudaError_t error = cudaDeviceSynchronize();
     if (error != cudaSuccess) {
         printf("  Kernel failed: %s\n", cudaGetErrorString(error));
@@ -113,7 +113,7 @@ void demonstrateMemoryErrors() {
     }
 
     printf("\nTest 2: Uninitialized memory access...\n");
-    uninitializedAccessKernel<<<numBlocks, blockSize>>>(d_output, d_input, N);
+    uninitialized_access_kernel<<<numBlocks, blockSize>>>(d_output, d_input, N);
     error = cudaDeviceSynchronize();
     if (error != cudaSuccess) {
         printf("  Kernel failed: %s\n", cudaGetErrorString(error));
@@ -122,7 +122,7 @@ void demonstrateMemoryErrors() {
     }
 
     printf("\nTest 3: Misaligned memory access...\n");
-    misalignedAccessKernel<<<numBlocks, blockSize>>>(d_char_data, N);
+    misaligned_access_kernel<<<numBlocks, blockSize>>>(d_char_data, N);
     error = cudaDeviceSynchronize();
     if (error != cudaSuccess) {
         printf("  Kernel failed: %s\n", cudaGetErrorString(error));
@@ -131,7 +131,7 @@ void demonstrateMemoryErrors() {
     }
 
     printf("\nTest 4: Shared memory bank conflicts...\n");
-    bankConflictKernel<<<numBlocks, blockSize>>>(d_output, d_input, N);
+    bank_conflict_kernel<<<numBlocks, blockSize>>>(d_output, d_input, N);
     error = cudaDeviceSynchronize();
     if (error != cudaSuccess) {
         printf("  Kernel failed: %s\n", cudaGetErrorString(error));
@@ -169,7 +169,7 @@ int main(int argc, char* argv[]) {
     printf("Compute capability: %d.%d\n\n", prop.major, prop.minor);
 
     // Run demonstration
-    demonstrateMemoryErrors();
+    demonstrate_memory_errors();
 
     return 0;
 }

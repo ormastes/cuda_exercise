@@ -41,13 +41,29 @@ FetchContent_MakeAvailable(googletest)
 include(CTest)
 include(GoogleTest)
 
+# Add custom CUDA utilities library
+add_subdirectory(00.cuda_custom_lib)
+add_subdirectory(00.test_lib)
+
+
+set(GTEST_BASIC_LIB GTest::gtest GTest::gmock GTest::gmock_main GTestCudaGenerator)
+
+# Platform-specific libraries for NVTX dynamic loading
+if(WIN32)
+    # Windows doesn't need explicit dl library
+    set(NVTX_PLATFORM_LIBS "")
+else()
+    # Unix-like systems (Linux, macOS) need dl for dlopen/dlsym
+    set(NVTX_PLATFORM_LIBS dl)
+endif()
+
 # Compiler flags for different build types
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(
         "$<$<COMPILE_LANGUAGE:CUDA>:-g;-G;-O0>"
         "$<$<COMPILE_LANGUAGE:CXX>:-g3;-O0>"
     )
-    set(CUDA_BASIC_LIB CUDA::cudart CUDA::nvtx3)
+    set(CUDA_BASIC_LIB CUDA::cudart CUDA::nvtx3 CudaCustomLib ${NVTX_PLATFORM_LIBS})
     option(ENABLE_PROFILING "Enable profiling instrumentation" ON)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Profile")
     # Profile flags: Optimized with debug info
@@ -55,7 +71,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Profile")
         "$<$<COMPILE_LANGUAGE:CUDA>:-g;-G;-O2>"
         "$<$<COMPILE_LANGUAGE:CXX>:-g3;-O2>"
     )
-    set(CUDA_BASIC_LIB CUDA::cudart CUDA::nvtx3)
+    set(CUDA_BASIC_LIB CUDA::cudart CUDA::nvtx3 CudaCustomLib ${NVTX_PLATFORM_LIBS})
     option(ENABLE_PROFILING "Enable profiling instrumentation" ON)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     # Release flags: Optimize for performance
@@ -77,9 +93,8 @@ if(VERBOSE_PTXAS)
 endif()
 
 
-add_subdirectory(00.cuda_custom_lib)
 add_subdirectory(00.demo)
 add_subdirectory(00.demo_lib)
-add_subdirectory(00.test_lib)
+
 add_subdirectory(10.cuda_basic)
 add_subdirectory(20.cuda_intermediate)

@@ -5,21 +5,21 @@
 #define N (1<<20)
 #define NSTREAMS 4
 
-__global__ void vectorAdd(float* a, float* b, float* c, int n) {
+__global__ void vector_add(float* a, float* b, float* c, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < n) {
         c[idx] = a[idx] + b[idx];
     }
 }
 
-void checkCudaError(cudaError_t error, const char* function) {
+void check_cuda_error(cudaError_t error, const char* function) {
     if (error != cudaSuccess) {
         fprintf(stderr, "CUDA error in %s: %s\n", function, cudaGetErrorString(error));
         exit(1);
     }
 }
 
-void initData(float* data, int size) {
+void init_data(float* data, int size) {
     for (int i = 0; i < size; i++) {
         data[i] = (float)(rand() % 100) / 100.0f;
     }
@@ -43,12 +43,12 @@ int main() {
     cudaMallocHost(&h_c, size);
     h_c_ref = (float*)malloc(size);
 
-    checkCudaError(cudaMalloc(&d_a, size), "cudaMalloc d_a");
-    checkCudaError(cudaMalloc(&d_b, size), "cudaMalloc d_b");
-    checkCudaError(cudaMalloc(&d_c, size), "cudaMalloc d_c");
+    check_cuda_error(cudaMalloc(&d_a, size), "cudaMalloc d_a");
+    check_cuda_error(cudaMalloc(&d_b, size), "cudaMalloc d_b");
+    check_cuda_error(cudaMalloc(&d_c, size), "cudaMalloc d_c");
 
-    initData(h_a, N);
-    initData(h_b, N);
+    init_data(h_a, N);
+    init_data(h_b, N);
 
     for (int i = 0; i < N; i++) {
         h_c_ref[i] = h_a[i] + h_b[i];
@@ -68,7 +68,7 @@ int main() {
     cudaEventRecord(start);
     cudaMemcpy(d_a, h_a, size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_b, h_b, size, cudaMemcpyHostToDevice);
-    vectorAdd<<<blocksPerGrid * NSTREAMS, threadsPerBlock>>>(d_a, d_b, d_c, N);
+    vector_add<<<blocksPerGrid * NSTREAMS, threadsPerBlock>>>(d_a, d_b, d_c, N);
     cudaMemcpy(h_c, d_c, size, cudaMemcpyDeviceToHost);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -94,7 +94,7 @@ int main() {
         int offset = i * streamSize;
         cudaMemcpyAsync(&d_a[offset], &h_a[offset], streamBytes, cudaMemcpyHostToDevice, streams[i]);
         cudaMemcpyAsync(&d_b[offset], &h_b[offset], streamBytes, cudaMemcpyHostToDevice, streams[i]);
-        vectorAdd<<<blocksPerGrid, threadsPerBlock, 0, streams[i]>>>(&d_a[offset], &d_b[offset], &d_c[offset], streamSize);
+        vector_add<<<blocksPerGrid, threadsPerBlock, 0, streams[i]>>>(&d_a[offset], &d_b[offset], &d_c[offset], streamSize);
         cudaMemcpyAsync(&h_c[offset], &d_c[offset], streamBytes, cudaMemcpyDeviceToHost, streams[i]);
     }
     cudaEventRecord(stop);
@@ -124,7 +124,7 @@ int main() {
     }
     for (int i = 0; i < NSTREAMS; i++) {
         int offset = i * streamSize;
-        vectorAdd<<<blocksPerGrid, threadsPerBlock, 0, streams[i]>>>(&d_a[offset], &d_b[offset], &d_c[offset], streamSize);
+        vector_add<<<blocksPerGrid, threadsPerBlock, 0, streams[i]>>>(&d_a[offset], &d_b[offset], &d_c[offset], streamSize);
     }
     for (int i = 0; i < NSTREAMS; i++) {
         int offset = i * streamSize;

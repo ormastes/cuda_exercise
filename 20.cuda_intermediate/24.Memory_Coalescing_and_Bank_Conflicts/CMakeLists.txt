@@ -1,4 +1,4 @@
-project(24_MemoryCoalescingBankConflicts)
+project(24_Memory_Coalescing_And_Bank_Conflicts)
 
 # Coalescing demonstration
 add_executable(${PROJECT_NAME}_coalescing_demo coalescing_demo.cu)

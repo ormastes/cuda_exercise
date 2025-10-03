@@ -83,7 +83,7 @@ public:
         return events[streamIdx * 3 + stage];
     }
 
-    void synchronizeAll() {
+    void synchronize_all() {
         for (auto& stream : streams) {
             cudaStreamSynchronize(stream);
         }
@@ -188,7 +188,7 @@ int main() {
                        cudaMemcpyDeviceToHost, stream);
     }
 
-    pipeline.synchronizeAll();
+    pipeline.synchronize_all();
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);
@@ -226,7 +226,7 @@ int main() {
         }
     }
 
-    pipeline.synchronizeAll();
+    pipeline.synchronize_all();
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&milliseconds, start, stop);

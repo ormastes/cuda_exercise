@@ -1,21 +1,22 @@
 // vector_add_2d.cu - 2D vector operations implementation
 #include "vector_add_2d.h"
 #include <cstdio>
-
+#include <cassert>
+#include <cmath>
 
 // Simple 2D vector addition kernel
-__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height) {
+__global__ void vector_add_2d(const float* A, const float* B, float* C, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int i = x * height + y;  // Column-major access in row-major storage
 
     if (x < width && y < height) {
-        C[i] = square(A[i]) + B[i];
+        C[i] = A[i] + B[i];
     }
 }
 
 // 2D reduction sum kernel (sum all elements)
-__global__ void reduceSum(const float* input, float* output, int N, int stride) {
+__global__ void reduce_sum(const float* input, float* output, int N, int stride) {
     extern __shared__ float sdata[];
 
     unsigned int tid = threadIdx.x;

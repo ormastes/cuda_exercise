@@ -79,6 +79,12 @@ inline void cuda_memcpy(T* dst, const T* src, size_t count, cudaMemcpyKind kind)
     CHECK_CUDA(cudaMemcpy(dst, src, count * sizeof(T), kind));
 }
 
+// Safe memory set with error checking
+template<typename T>
+inline void cuda_memset(T* ptr, int value, size_t count) {
+    CHECK_CUDA(cudaMemset(ptr, value, count * sizeof(T)));
+}
+
 // Safe memory free
 inline void cuda_free(void* ptr) {
     if (ptr) {

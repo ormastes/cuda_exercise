@@ -6,7 +6,7 @@ __device__ float square(float x) {
     return x * x;
 }
 
-__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height) {
+__global__ void vector_add_2d(const float* A, const float* B, float* C, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int i = y * width + x;
@@ -41,7 +41,7 @@ int main() {
 
     dim3 threads(16, 16);
     dim3 blocks((width + 15)/16, (height + 15)/16);
-    vectorAdd2D<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
+    vector_add_2d<<<blocks, threads>>>(d_A, d_B, d_C, width, height);
 
     cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
 

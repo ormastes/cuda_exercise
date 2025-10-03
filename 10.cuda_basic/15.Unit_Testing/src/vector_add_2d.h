@@ -12,5 +12,5 @@ __device__ inline float compute_sum(float a, float b) {
 }
 
 // Kernel declarations
-__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height);
-__global__ void reduceSum(const float* input, float* output, int N, int stride);
+__global__ void vector_add_2d(const float* A, const float* B, float* C, int width, int height);
+__global__ void reduce_sum(const float* input, float* output, int N, int stride);

@@ -1,4 +1,4 @@
-project(25_DynamicParallelism)
+project(25_Dynamic_Parallelism)
 
 # Note: Dynamic parallelism requires special compilation flags set in parent CMakeLists.txt
 # Enable relocatable device code for this project

@@ -7,7 +7,7 @@
 #define NCHUNKS 16
 #define NSTREAMS 2
 
-__global__ void processData(float* data, int size, float factor) {
+__global__ void process_data(float* data, int size, float factor) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < size) {
         float val = data[idx];
@@ -18,14 +18,14 @@ __global__ void processData(float* data, int size, float factor) {
     }
 }
 
-void checkCudaError(cudaError_t error, const char* function) {
+void check_cuda_error(cudaError_t error, const char* function) {
     if (error != cudaSuccess) {
         fprintf(stderr, "CUDA error in %s: %s\n", function, cudaGetErrorString(error));
         exit(1);
     }
 }
 
-void initData(float* data, int size) {
+void init_data(float* data, int size) {
     for (int i = 0; i < size; i++) {
         data[i] = (float)(i % 1000) / 1000.0f;
     }
@@ -48,10 +48,10 @@ int main() {
     cudaMallocHost(&h_data_out, totalBytes);
 
     for (int i = 0; i < NSTREAMS; i++) {
-        checkCudaError(cudaMalloc(&d_data[i], chunkBytes), "cudaMalloc");
+        check_cuda_error(cudaMalloc(&d_data[i], chunkBytes), "cudaMalloc");
     }
 
-    initData(h_data_in, totalSize);
+    init_data(h_data_in, totalSize);
 
     cudaStream_t streams[NSTREAMS];
     for (int i = 0; i < NSTREAMS; i++) {
@@ -70,12 +70,12 @@ int main() {
     printf("-----------------------\n");
 
     float* d_data_seq;
-    checkCudaError(cudaMalloc(&d_data_seq, totalBytes), "cudaMalloc sequential");
+    check_cuda_error(cudaMalloc(&d_data_seq, totalBytes), "cudaMalloc sequential");
 
     cudaEventRecord(start);
     cudaMemcpy(d_data_seq, h_data_in, totalBytes, cudaMemcpyHostToDevice);
     for (int i = 0; i < NCHUNKS; i++) {
-        processData<<<blocksPerGrid, threadsPerBlock>>>(d_data_seq + i * CHUNK_SIZE, CHUNK_SIZE, 2.0f);
+        process_data<<<blocksPerGrid, threadsPerBlock>>>(d_data_seq + i * CHUNK_SIZE, CHUNK_SIZE, 2.0f);
     }
     cudaMemcpy(h_data_out, d_data_seq, totalBytes, cudaMemcpyDeviceToHost);
     cudaEventRecord(stop);
@@ -94,7 +94,7 @@ int main() {
         cudaMemcpyAsync(d_data[streamId], h_data_in + offset, chunkBytes,
                        cudaMemcpyHostToDevice, streams[streamId]);
 
-        processData<<<blocksPerGrid, threadsPerBlock, 0, streams[streamId]>>>(
+        process_data<<<blocksPerGrid, threadsPerBlock, 0, streams[streamId]>>>(
             d_data[streamId], CHUNK_SIZE, 2.0f);
 
         cudaMemcpyAsync(h_data_out + offset, d_data[streamId], chunkBytes,
@@ -120,7 +120,7 @@ int main() {
 
     for (int i = 0; i < NCHUNKS; i++) {
         int streamId = i % NSTREAMS;
-        processData<<<blocksPerGrid, threadsPerBlock, 0, streams[streamId]>>>(
+        process_data<<<blocksPerGrid, threadsPerBlock, 0, streams[streamId]>>>(
             d_data[streamId], CHUNK_SIZE, 2.0f);
     }
 
@@ -153,7 +153,7 @@ int main() {
 
     cudaEventRecord(start);
     for (int i = 0; i < NCHUNKS; i++) {
-        processData<<<blocksPerGrid, threadsPerBlock>>>(
+        process_data<<<blocksPerGrid, threadsPerBlock>>>(
             d_data_seq + i * CHUNK_SIZE, CHUNK_SIZE, 2.0f);
     }
     cudaDeviceSynchronize();

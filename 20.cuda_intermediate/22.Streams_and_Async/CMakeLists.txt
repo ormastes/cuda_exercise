@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(StreamsAndAsync CUDA CXX)
+project(22_Streams_And_Async CUDA CXX)
 
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)

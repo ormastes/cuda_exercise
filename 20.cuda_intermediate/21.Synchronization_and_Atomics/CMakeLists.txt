@@ -1,4 +1,4 @@
-project(22_Synchronization_and_Atomics)
+project(21_Synchronization_And_Atomics)
 
 # Main executable for synchronization and atomics demonstrations
 add_executable(${PROJECT_NAME} synchronization_atomics.cu)

@@ -2,6 +2,14 @@
 
 **Goal**: Master GPU debugging techniques using NVIDIA Nsight and cuda-gdb in VSCode.
 
+## Project Structure
+```
+13.Debugging_CUDA_in_VSCode/
+├── README.md            - Debugging guide and configuration
+├── CMakeLists.txt       - Build configuration with debug flags
+└── vector_add_2d.cu     - Example kernels for debugging practice
+```
+
 ---
 
 ## **13.1 Overview of CUDA Debugging**
@@ -202,7 +210,7 @@ ninja -v
    - View thread coordinates (threadIdx, blockIdx)
 
 5. **Inspect Variables**
-   - Hover over variables to see values (e.g., `x`, `y`, `i` in vectorAdd2D)
+   - Hover over variables to see values (e.g., `x`, `y`, `i` in vector_add_2d)
    - Use Watch panel for complex expressions like `y * width + x`
    - Variables panel shows local and global values
    - Inspect 2D grid indices and device function results
@@ -236,19 +244,19 @@ To debug specific threads, use conditional breakpoints:
 
 **Common CUDA Conditional Expressions (for vector_add_2d.cu's 2D grid):**
 ```cpp
-// Break only for thread (0,0) in block (0,0) - useful for vectorAdd2D
+// Break only for thread (0,0) in block (0,0) - useful for vector_add_2d
 threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 0
 
 // Break for the last thread in a 2D block
 threadIdx.x == blockDim.x - 1 && threadIdx.y == blockDim.y - 1
 
-// Break for specific 2D position in vectorAdd2D
+// Break for specific 2D position in vector_add_2d
 int x = blockIdx.x * blockDim.x + threadIdx.x; x == 512 && y == 512
 
 // Break for boundary threads in 2D
 threadIdx.x == 0 || threadIdx.y == 0
 
-// Break for specific warp in reduceSum
+// Break for specific warp in reduce_sum
 (threadIdx.x / 32) == 2
 ```
 
@@ -341,7 +349,7 @@ __device__ float square(float x) {
     return x * x;
 }
 
-__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height) {
+__global__ void vector_add_2d(const float* A, const float* B, float* C, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int i = y * width + x;
@@ -364,7 +372,7 @@ __global__ void vectorAdd2D(const float* A, const float* B, float* C, int width,
 
 ```cpp
 // File: vector_add_2d.cu (included in this directory)
-__global__ void reduceSum(const float* input, float* output, int N) {
+__global__ void reduce_sum(const float* input, float* output, int N) {
     extern __shared__ float sdata[];
 
     unsigned int tid = threadIdx.x;
@@ -423,7 +431,7 @@ Enable memory checking with cuda-memcheck:
 
 ```cpp
 // Adapting vector_add_2d.cu for printf debugging
-__global__ void vectorAdd2D(const float* A, const float* B, float* C, int width, int height) {
+__global__ void vector_add_2d(const float* A, const float* B, float* C, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int i = y * width + x;
@@ -526,8 +534,8 @@ if (blockIdx.x == 1 && blockIdx.y == 0 && threadIdx.x == 0 && threadIdx.y == 0) 
 Debug at warp granularity:
 
 ```cpp
-// Warp-level debugging in reduceSum from vector_add_2d.cu
-__global__ void reduceSum(const float* input, float* output, int N) {
+// Warp-level debugging in reduce_sum from vector_add_2d.cu
+__global__ void reduce_sum(const float* input, float* output, int N) {
     extern __shared__ float sdata[];
     unsigned int tid = threadIdx.x;
 
@@ -551,8 +559,8 @@ Debug memory consistency issues:
 This may not happen on this example, but if you have memory synchronization issues, you can add memory fences to ensure visibility.
 
 ```cpp
-// Memory synchronization in reduceSum from vector_add_2d.cu
-__global__ void reduceSum(const float* input, float* output, int N) {
+// Memory synchronization in reduce_sum from vector_add_2d.cu
+__global__ void reduce_sum(const float* input, float* output, int N) {
     // ... reduction code ...
 
     // Write result for this block to global memory
@@ -662,10 +670,10 @@ nvcc -G -g -O0 vector_add_2d.cu -o vector_add_2d
 #### **Practical Examples**
 ```bash
 # Set breakpoint for specific thread
-(cuda-gdb) break vectorAdd2D if blockIdx.x==0 && threadIdx.x==0
+(cuda-gdb) break vector_add_2d if blockIdx.x==0 && threadIdx.x==0
 
 # Break when accessing specific array index
-(cuda-gdb) break vectorAdd2D if i==1000
+(cuda-gdb) break vector_add_2d if i==1000
 
 # Navigate to specific thread and inspect
 (cuda-gdb) cuda kernel 0 block 2,1,0 thread 5,3,0
@@ -685,7 +693,7 @@ nvcc -G -g -O0 vector_add_2d.cu -o vector_add_2d
 ```
 (cuda-gdb) info cuda kernels
   Kernel Parent Dev Grid Status                 SMs Mask   GridDim  BlockDim Invocation
-*      0      -   0    1 Active 0x0fffffffffffffffffffff (64,64,1) (16,16,1) vectorAdd2D(...)
+*      0      -   0    1 Active 0x0fffffffffffffffffffff (64,64,1) (16,16,1) vector_add_2d(...)
 ```
 
 | Field | Value | Meaning |
@@ -698,7 +706,7 @@ nvcc -G -g -O0 vector_add_2d.cu -o vector_add_2d
 | **SMs Mask** | 0x0fff... | Streaming Multiprocessors mask (which SMs are used) |
 | **GridDim** | (64,64,1) | Grid dimensions: 64×64 blocks |
 | **BlockDim** | (16,16,1) | Block dimensions: 16×16 threads per block |
-| **Invocation** | vectorAdd2D(...) | Kernel name and parameters |
+| **Invocation** | vector_add_2d(...) | Kernel name and parameters |
 
 **Total threads**: 64×64 blocks × 16×16 threads = 1,048,576 threads
 

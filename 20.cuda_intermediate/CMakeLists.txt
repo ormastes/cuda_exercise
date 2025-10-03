@@ -15,10 +15,14 @@ add_subdirectory("22.Streams_and_Async")
 # Part 25: Dynamic Parallelism
 #add_subdirectory("25.Dynamic_Parallelism")
 
+# Part 26: Cooperative Groups and Advanced Synchronization
+# add_subdirectory("26.Cooperative_Groups_and_Advanced_Synchronization")
+
 # Part 27: Multi-GPU Programming
 # add_subdirectory("27.Multi_GPU_Programming")
 
-# Future parts to be implemented:
-# Part 26: CUDA Libraries
-# Part 28: Cooperative Groups Advanced
+# Part 28: CUDA Libraries
+# add_subdirectory("28.CUDA_Libraries")
+
 # Part 29: cuDNN (Optional)
+# add_subdirectory("29.cuDNN")

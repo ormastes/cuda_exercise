@@ -169,7 +169,8 @@
 - **29.2** Convolution Operations
 - **29.3** Pooling and Activation Functions
 - **29.4** Batch Normalization
-- **29.5** Performance Auto-tuning
+- **29.5** Backpropagation Primitives
+- **29.6** Performance Auto-tuning
 
 📄 *Example Code:* `cudnn_layer.cu` (complete layer with forward/backward), `cudnn_cnn.cu` (simple CNN implementation)
 

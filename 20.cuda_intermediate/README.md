@@ -85,48 +85,18 @@
 
 ---
 
-## 🧩 Part 26: Using CUDA Libraries
+## 👥 Part 26: Cooperative Groups Advanced
 
-**Goal**: Leverage NVIDIA's optimized libraries for common operations.
+**Goal**: Advanced thread cooperation patterns and optimizations.
 
-### **26.1 cuBLAS - Linear Algebra**
-- Basic Operations (Level 1, 2, 3 BLAS)
-- Matrix Multiplication with `cublasSgemm`
-- Batched Operations
-- Mixed Precision with Tensor Cores
+- **26.1** Multi-Grid Synchronization
+- **26.2** Dynamic Group Formation
+- **26.3** Warp-Level Collectives
+- **26.4** Complex Reduction Patterns
+- **26.5** Producer-Consumer Patterns
+- **26.6** Thread Block Clusters (SM 9.0+)
 
-📄 *Example Code:* `matrix_multiply_cublas.cu` (comparing custom kernel vs cuBLAS), `backprop_layer.cu` (neural network layer forward/backward)
-
-### **26.2 cuFFT - Fast Fourier Transforms**
-- 1D, 2D, and 3D Transforms
-- Real and Complex Transforms
-- Batched FFTs
-- Performance Optimization
-
-📄 *Example Code:* `cufft_convolution.cu`, `cufft_image_filter.cu` (FFT-based image processing)
-
-### **26.3 cuRAND - Random Number Generation**
-- Pseudo-Random Generators
-- Quasi-Random Generators
-- Distribution Functions
-- Monte Carlo Simulations
-
-📄 *Example Code:* `backprop_init.cu` (weight initialization for neural networks), `curand_monte_carlo.cu`
-
-### **26.4 cuSPARSE - Sparse Matrix Operations**
-- Sparse Matrix Formats (CSR, COO)
-- Sparse Matrix-Vector Multiplication
-- Format Conversions
-
-📄 *Example Code:* `sparse_matmul.cu` (sparse matrix multiplication), `sparse_gradient.cu` (sparse gradients in backprop)
-
-### **26.5 Thrust - High-Level Algorithms**
-- Parallel STL-like Algorithms
-- Device Vectors
-- Transformations and Reductions
-- Sorting and Searching
-
-📄 *Example Code:* `thrust_matmul.cu` (matrix operations with Thrust), `thrust_backprop.cu` (mini-batch processing)
+📄 *Example Code:* `multi_grid.cu`, `dynamic_groups.cu`, `warp_collectives.cu`, `cluster_communication.cu`
 
 ---
 
@@ -146,44 +116,14 @@
 
 ---
 
-## 👥 Part 28: Cooperative Groups Advanced
-
-**Goal**: Advanced thread cooperation patterns and optimizations.
-
-- **28.1** Multi-Grid Synchronization
-- **28.2** Dynamic Group Formation
-- **28.3** Warp-Level Collectives
-- **28.4** Complex Reduction Patterns
-- **28.5** Producer-Consumer Patterns
-- **28.6** Thread Block Clusters (SM 9.0+)
-
-📄 *Example Code:* `multi_grid.cu`, `dynamic_groups.cu`, `warp_collectives.cu`, `cluster_communication.cu`
-
----
-
-## 🤖 Part 29: Introduction to cuDNN (Optional)
-
-**Goal**: Deep learning primitives with cuDNN (if working with neural networks).
-
-- **29.1** cuDNN Overview and Setup
-- **29.2** Convolution Operations
-- **29.3** Pooling and Activation Functions
-- **29.4** Batch Normalization
-- **29.5** Backpropagation Primitives
-- **29.6** Performance Auto-tuning
-
-📄 *Example Code:* `cudnn_layer.cu` (complete layer with forward/backward), `cudnn_cnn.cu` (simple CNN implementation)
-
----
-
 ## ✅ Summary
 
 This intermediate section covers:
 
-1. **Advanced Memory**: Unified memory, pinned memory, zero-copy techniques
-2. **Parallelism**: Streams, async execution, synchronization
-3. **I/O Optimization**: GPUDirect technologies for storage and networking
-4. **CUDA Libraries**: cuBLAS, cuFFT, cuRAND, cuSPARSE, Thrust
+1. **Synchronization**: Advanced thread synchronization and atomic operations
+2. **Parallelism**: Streams, async execution, dynamic parallelism
+3. **Memory Optimization**: Shared memory, memory coalescing, bank conflicts
+4. **Cooperative Groups**: Advanced thread cooperation patterns
 5. **Multi-GPU**: Scaling across multiple devices
 6. **Performance**: Advanced optimization techniques
 

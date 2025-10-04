@@ -11,12 +11,11 @@ add_library(${MODULE}_lib STATIC
     kernels/vector_add_2d.cu
 )
 
-target_compile_definitions(${MODULE}_lib PUBLIC
-    BUILDING_LIB  # Define to avoid main() in library
-)
+target_compile_definitions(${MODULE}_lib PUBLIC BUILDING_LIB)
 
 target_link_libraries(${MODULE}_lib
     PUBLIC
+    ${CUDA_BASIC_LIB}
     ${MODULE}_lib_INTERFACE
 )
 
@@ -27,5 +26,6 @@ add_library(${MODULE}_part_specific_lib STATIC
 
 target_link_libraries(${MODULE}_part_specific_lib
     PUBLIC
+    ${CUDA_BASIC_LIB}
     ${MODULE}_lib_INTERFACE
 )

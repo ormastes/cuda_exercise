@@ -6,19 +6,23 @@
 
 ```
 16.Error_Handling_and_Debugging/
-├── CMakeLists.txt              # Root CMake configuration
-├── README.md                   # This documentation
-├── src/                        # Source code directory
-│   ├── CMakeLists.txt         # Library build configuration
-│   ├── vector_add_2d.cu       # Core implementation with error examples
-│   └── vector_add_2d.h        # Header with kernel declarations
-└── test/                       # Test directory
-    ├── CMakeLists.txt         # Test build configuration
-    ├── test_error_handling.cu # Comprehensive error handling demos
-    └── test_vector_add_2d.cu  # Unit tests for vector operations
+├── CMakeLists.txt                   # Root CMake configuration
+├── README.md                        # This documentation
+├── src/                             # Source code directory
+│   ├── CMakeLists.txt              # Library build configuration
+│   └── kernels/                    # Core CUDA kernels (reusable across parts)
+│       ├── vector_add_2d.cu        # Core implementation with error examples
+│       └── vector_add_2d.h         # Header with kernel declarations
+└── test/                            # Test directory
+    ├── CMakeLists.txt              # Test build configuration
+    └── unit/                        # Unit tests
+        ├── kernels/                # Kernel tests (reusable across parts)
+        │   └── test_vector_add_2d.cu  # Unit tests for vector operations
+        └── part_specific/          # Module-specific tests
+            └── test_error_handling.cu # Comprehensive error handling demos
 ```
 
-**Note:** All code examples shown in this README are implemented and tested in `test/test_error_handling.cu`
+**Note:** All code examples shown in this README are implemented and tested in `test/unit/part_specific/test_error_handling.cu`
 
 ## CMake Structure Overview
 
@@ -34,22 +38,22 @@ add_subdirectory(test)  # Build test executables
 
 ### **src/CMakeLists.txt - Library Configuration**
 The source directory creates two libraries:
-1. **Interface Library** (`${MODULE_NAME}_lib_INTERFACE`): Header-only interface for includes
-2. **Static Library** (`${MODULE_NAME}_lib`): Compiled CUDA kernels
+1. **Interface Library** (`${MODULE}_lib_INTERFACE`): Header-only interface for includes
+2. **Static Library** (`${MODULE}_lib`): Compiled CUDA kernels
 
 ```cmake
 # Interface library for headers
-add_library(${MODULE_NAME}_lib_INTERFACE INTERFACE)
-target_include_directories(${MODULE_NAME}_lib_INTERFACE
+add_library(${MODULE}_lib_INTERFACE INTERFACE)
+target_include_directories(${MODULE}_lib_INTERFACE
     INTERFACE ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Static library with CUDA kernels
-add_library(${MODULE_NAME}_lib STATIC
-    vector_add_2d.cu
+add_library(${MODULE}_lib STATIC
+    kernels/vector_add_2d.cu
 )
-target_link_libraries(${MODULE_NAME}_lib
-    PUBLIC ${MODULE_NAME}_lib_INTERFACE
+target_link_libraries(${MODULE}_lib
+    PUBLIC ${MODULE}_lib_INTERFACE
 )
 ```
 
@@ -65,7 +69,7 @@ target_link_libraries(${MODULE}_test PRIVATE
     GTest::gtest_main      # Google Test framework
     GTestCudaGenerator     # GPU testing utilities
     CudaCustomLib          # cuda_utils.h utilities
-    ${MODULE_NAME}_lib_INTERFACE
+    ${MODULE}_lib_INTERFACE
 )
 
 # Long-term/stress testing

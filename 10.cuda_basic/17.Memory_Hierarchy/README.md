@@ -9,19 +9,20 @@ This module follows the advanced structure (Module 16+) with dedicated source an
 ├── README.md                        - This documentation
 ├── CMakeLists.txt                   - Build configuration
 ├── src/                             - Source implementations
-│   ├── kernels/                     - Core CUDA kernels
+│   ├── kernels/                     - Core CUDA kernels (reusable across parts)
 │   │   ├── matrix_multiply.cu       - Matrix multiplication implementations
 │   │   ├── vector_add_2d.cu         - 2D vector addition kernels
 │   │   └── vector_add_2d.h          - Vector addition header
 │   └── part_specific/               - Module-specific implementations
 │       └── vector_add_memory.cu     - Memory access pattern demos
 └── test/                            - Test files
-    ├── kernels/                     - Kernel tests
-    │   ├── test_matrix_multiply.cu  - Matrix multiplication tests
-    │   └── test_vector_add_2d.cu    - Vector addition tests
-    └── part_specific/               - Module-specific tests
-        ├── benchmark_memory.cu      - Memory performance benchmarks
-        └── test_vector_add_memory.cu - Memory pattern tests
+    └── unit/                        - Unit tests
+        ├── kernels/                 - Kernel tests (reusable across parts)
+        │   ├── test_matrix_multiply.cu  - Matrix multiplication tests
+        │   └── test_vector_add_2d.cu    - Vector addition tests
+        └── part_specific/           - Module-specific tests
+            ├── benchmark_memory.cu      - Memory performance benchmarks
+            └── test_vector_add_memory.cu - Memory pattern tests
 ```
 
 ## Quick Navigation
@@ -310,7 +311,7 @@ This section details strategies for avoiding shared memory bank conflicts. Bank 
 
 ### **17.5.1 Understanding Bank Conflicts**
 
-Modern GPUs organize shared memory into 32 banks, with successive 32-bit words assigned to successive banks. When multiple threads in a warp access different addresses in the same bank, the accesses are serialized, dramatically reducing performance. Test implementation in `test/kernels/test_matrix_multiply.cu`.
+Modern GPUs organize shared memory into 32 banks, with successive 32-bit words assigned to successive banks. When multiple threads in a warp access different addresses in the same bank, the accesses are serialized, dramatically reducing performance. Test implementation in `test/unit/kernels/test_matrix_multiply.cu`.
 
 ```cpp
 // test_matrix_multiply.cu - Bank conflict detection
@@ -331,7 +332,7 @@ __global__ void test_bank_conflicts(float* output) {
 
 ### **17.5.2 Padding Technique**
 
-Padding is a simple yet effective technique for eliminating bank conflicts by adding extra elements to array dimensions. This shifts memory addresses so that threads in a warp access different banks, converting serialized accesses into parallel ones and achieving dramatic speedups. Source: `test/part_specific/benchmark_memory.cu`.
+Padding is a simple yet effective technique for eliminating bank conflicts by adding extra elements to array dimensions. This shifts memory addresses so that threads in a warp access different banks, converting serialized accesses into parallel ones and achieving dramatic speedups. Source: `test/unit/part_specific/benchmark_memory.cu`.
 
 ```cpp
 // benchmark_memory.cu - Padding to avoid conflicts
@@ -364,10 +365,10 @@ This module includes comprehensive unit and performance tests to validate correc
 
 ### **17.6.1 Unit Tests**
 
-Unit tests verify the correctness of each implementation by comparing results between optimized and baseline versions. These tests ensure that performance optimizations don't compromise accuracy and that all edge cases are handled correctly. Tests are in `test/kernels/` and `test/part_specific/`.
+Unit tests verify the correctness of each implementation by comparing results between optimized and baseline versions. These tests ensure that performance optimizations don't compromise accuracy and that all edge cases are handled correctly. Tests are in `test/unit/kernels/` and `test/unit/part_specific/`.
 
 ```cpp
-// test/kernels/test_matrix_multiply.cu
+// test/unit/kernels/test_matrix_multiply.cu
 #include <gtest/gtest.h>
 #include "../../00.test_lib/gpu_gtest.h"
 
@@ -409,7 +410,7 @@ GPU_TEST(MatrixMultiply, CorrectnessCheck) {
 Performance tests measure bandwidth utilization, GFLOPS, and relative speedups between implementations. These benchmarks help identify bottlenecks and verify that optimizations achieve expected theoretical improvements.
 
 ```cpp
-// test/part_specific/benchmark_memory.cu
+// test/unit/part_specific/benchmark_memory.cu
 TEST(Performance, MemoryBandwidthTest) {
     CudaTimer timer;
     const size_t size = 1 << 20;  // 1M elements

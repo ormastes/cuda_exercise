@@ -7,16 +7,34 @@
 #include "gtest_generator.h"
 #include "cuda_utils.h"  // Use our custom CUDA utilities library
 
-// Direct inclusion of implementation for testing device functions
-#include "vector_add_2d.cu"
+#include "kernels/vector_add_2d.cu"
 
 
 
-// Base test class (optional, can be used for shared setup)
+// Base test class with proper device checking and error handling
 class GpuGeneratorTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Any common setup
+        // Check for CUDA device
+        int deviceCount = 0;
+        CHECK_CUDA(cudaGetDeviceCount(&deviceCount));
+        if (deviceCount == 0) {
+            GTEST_SKIP() << "No CUDA devices found";
+        }
+
+        // Set device and check properties
+        CHECK_CUDA(cudaSetDevice(0));
+
+        // Clear any existing errors
+        cudaGetLastError(); // Intentionally not checking - just clearing
+    }
+
+    void TearDown() override {
+        // Check for any errors that occurred during test
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) {
+            ADD_FAILURE() << "CUDA error detected during test: " << cudaGetErrorString(err);
+        }
     }
 };
 
@@ -167,8 +185,28 @@ GPU_TEST_G(GpuGeneratorTest, EdgeCases) {
 //     Host-side Integration Tests with Generators  //
 //==================================================//
 
-// Test fixture for host-side generator tests
+// Test fixture for host-side generator tests with proper error handling
 class HostGeneratorTest : public ::gtest_generator::TestWithGenerator {
+protected:
+    void SetUp() override {
+        // Check for CUDA device
+        int deviceCount = 0;
+        CHECK_CUDA(cudaGetDeviceCount(&deviceCount));
+        if (deviceCount == 0) {
+            GTEST_SKIP() << "No CUDA devices found";
+        }
+
+        // Clear any existing errors
+        cudaGetLastError(); // Intentionally not checking - just clearing
+    }
+
+    void TearDown() override {
+        // Check for any errors that occurred during test
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) {
+            ADD_FAILURE() << "CUDA error detected during test: " << cudaGetErrorString(err);
+        }
+    }
 };
 
 TEST_G(HostGeneratorTest, VectorAdd2D) {
@@ -181,34 +219,64 @@ TEST_G(HostGeneratorTest, VectorAdd2D) {
 
     const int size = width * height;
 
-    // Allocate device memory using our utilities
+    // Allocate device memory using our utilities with error checking
     float* d_a = cuda_malloc<float>(size);
     float* d_b = cuda_malloc<float>(size);
     float* d_c = cuda_malloc<float>(size);
 
-    // Initialize test data with generated values
-    std::vector<float> h_a(size, a_value);
-    std::vector<float> h_b(size, b_value);
+    // Verify allocations succeeded
+    ASSERT_NE(d_a, nullptr) << "Failed to allocate device memory for d_a";
+    ASSERT_NE(d_b, nullptr) << "Failed to allocate device memory for d_b";
+    ASSERT_NE(d_c, nullptr) << "Failed to allocate device memory for d_c";
 
-    // Copy data to device
+    // Initialize test data with generated values
+    std::vector<float> h_a(size);
+    std::vector<float> h_b(size);
+
+    for (int i = 0; i < size; i++) {
+        h_a[i] = a_value;
+        h_b[i] = b_value;
+    }
+
+    // Copy data to device (error checking is built into cuda_memcpy)
     cuda_memcpy(d_a, h_a.data(), size, cudaMemcpyHostToDevice);
     cuda_memcpy(d_b, h_b.data(), size, cudaMemcpyHostToDevice);
 
-    // Launch kernel
+    // Launch kernel with proper error checking
     dim3 block(16, 16);
-    dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
+    dim3 grid = grid_size_2d(width, height, block);
+
     vector_add_2d<<<grid, block>>>(d_a, d_b, d_c, width, height);
-    cudaDeviceSynchronize();
+
+    // Check for kernel launch and execution errors
+    CHECK_KERNEL_LAUNCH();
 
     // Check results
     std::vector<float> h_c(size);
     cuda_memcpy(h_c.data(), d_c, size, cudaMemcpyDeviceToHost);
 
-    // Expected: a_value + b_value (kernel does simple addition)
-    float expected = a_value + b_value;
+    // Expected: square(a_value) + b_value
+    float expected = a_value * a_value + b_value;
+
+    // Validate results with detailed error reporting
+    int errors = 0;
+    const int MAX_ERRORS_TO_PRINT = 10;
+
     for (int i = 0; i < size; i++) {
-        EXPECT_NEAR(h_c[i], expected, 1e-5f);
+        if (std::abs(h_c[i] - expected) > 1e-5f) {
+            if (errors < MAX_ERRORS_TO_PRINT) {
+                int x = i / height;
+                int y = i % height;
+                EXPECT_NEAR(h_c[i], expected, 1e-5f)
+                    << "Mismatch at position (" << x << "," << y << ")"
+                    << " index=" << i
+                    << " for dimensions " << width << "x" << height;
+            }
+            errors++;
+        }
     }
+
+    EXPECT_EQ(errors, 0) << "Total errors: " << errors << " out of " << size << " elements";
 
     // Free device memory
     cuda_free(d_a);
@@ -226,9 +294,13 @@ TEST_G(HostGeneratorTest, ReduceSum2D) {
 
     const int size = width * height;
 
-    // Allocate device memory
+    // Allocate device memory with error checking
     float* d_input = cuda_malloc<float>(size);
     float* d_output = cuda_calloc<float>(1);
+
+    // Verify allocations succeeded
+    ASSERT_NE(d_input, nullptr) << "Failed to allocate device memory for d_input";
+    ASSERT_NE(d_output, nullptr) << "Failed to allocate device memory for d_output";
 
     // Initialize with generated value
     std::vector<float> h_input(size, value);
@@ -236,10 +308,10 @@ TEST_G(HostGeneratorTest, ReduceSum2D) {
 
     // Launch reduction kernel with appropriate configuration
     dim3 block(256);  // Use 1D block for reduction
-    dim3 grid((size + block.x - 1) / block.x);
+    dim3 grid = dim3(grid_size_1d(size, block.x));
     size_t shmem_size = block.x * sizeof(float);
     reduce_sum<<<grid, block, shmem_size>>>(d_input, d_output, size, stride);
-    cudaDeviceSynchronize();
+    CHECK_KERNEL_LAUNCH();
 
     // Check result
     float h_output;
@@ -257,4 +329,31 @@ TEST_G(HostGeneratorTest, ReduceSum2D) {
     // Free device memory
     cuda_free(d_input);
     cuda_free(d_output);
+}
+
+// Main function with device checking and initialization
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+
+    // Check for CUDA device before running tests
+    int deviceCount = 0;
+    cudaError_t err = cudaGetDeviceCount(&deviceCount);
+
+    if (err != cudaSuccess) {
+        std::cerr << "Failed to get CUDA device count: " << cudaGetErrorString(err) << std::endl;
+        return 1;
+    }
+
+    if (deviceCount == 0) {
+        std::cerr << "No CUDA devices found!" << std::endl;
+        return 1;
+    }
+
+    // Print device info
+    std::cout << "\n=== CUDA Device Information ===" << std::endl;
+    print_device_info(0);
+    std::cout << "================================\n" << std::endl;
+
+    // Run all tests
+    return RUN_ALL_TESTS();
 }

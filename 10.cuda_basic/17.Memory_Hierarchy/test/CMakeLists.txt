@@ -1,21 +1,15 @@
-# Test executable for memory hierarchy demonstrations
-add_executable(${MODULE}_test
-    kernels/test_matrix_multiply.cu
-    kernels/test_vector_add_2d.cu
-)
 
-# Add include directories for test headers
-target_include_directories(${MODULE}_test
-    PRIVATE
-    ${CMAKE_SOURCE_DIR}/00.test_lib  # For gpu_gtest.h
+add_executable(${MODULE}_test
+    unit/kernels/test_matrix_multiply.cu
+    unit/kernels/test_vector_add_2d.cu
 )
 
 # Link test with testing frameworks
 target_link_libraries(${MODULE}_test
     PRIVATE
-    ${MODULE}_lib
     ${CUDA_BASIC_LIB}
     ${GTEST_BASIC_LIB}
+    ${MODULE}_lib
 )
 
 # Register tests with CTest
@@ -24,26 +18,40 @@ gtest_discover_tests(${MODULE}_test)
 # Add profiling targets
 add_profiling_targets(${MODULE}_test)
 
-# Performance benchmark executable
-add_executable(${MODULE}_benchmark
-    part_specific/benchmark_memory.cu
-    part_specific/test_vector_add_memory.cu
+
+# Test executable for memory hierarchy demonstrations
+add_executable(${MODULE}_part_specific_test
+    unit/part_specific/test_vector_add_memory.cu
 )
 
-target_include_directories(${MODULE}_benchmark
+# Link test with testing frameworks
+target_link_libraries(${MODULE}_part_specific_test
     PRIVATE
-    ${CMAKE_SOURCE_DIR}/00.test_lib  # For gpu_gtest.h
-)
-
-target_link_libraries(${MODULE}_benchmark
-    PRIVATE
-    ${MODULE}_lib
-    ${MODULE}_part_specific_lib
     ${CUDA_BASIC_LIB}
     ${GTEST_BASIC_LIB}
+    ${MODULE}_lib
+    ${MODULE}_part_specific_lib
 )
 
-gtest_discover_tests(${MODULE}_benchmark)
+# Register tests with CTest
+gtest_discover_tests(${MODULE}_part_specific_test)
 
-add_profiling_targets(${MODULE}_benchmark)
+# Add profiling targets
+add_profiling_targets(${MODULE}_part_specific_test)
 
+
+# Test executable for memory hierarchy demonstrations
+add_executable(${MODULE}_benchmark_memory_test
+    unit/part_specific/benchmark_memory.cu
+)
+
+# Link test with testing frameworks
+target_link_libraries(${MODULE}_benchmark_memory_test
+    PRIVATE
+    ${CUDA_BASIC_LIB}
+    ${MODULE}_part_specific_lib
+)
+
+
+# Add profiling targets
+add_profiling_targets(${MODULE}_benchmark_memory_test)

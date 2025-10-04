@@ -6,11 +6,23 @@ This project demonstrates how to write unit tests for CUDA kernels using the GPU
 
 ## Project Structure
 
-- `vector_add_2d.cu` - Optimized implementation of 2D vector operations with performance-focused kernels
-- `vector_add_2d.h` - Header file with kernel declarations
-- `test_vector_add_2d.cu` - Comprehensive unit tests using the GPU testing framework (direct inclusion method)
-- `test_vector_add_2d_with_lib.cu` - Unit tests using library-based testing approach
-- `CMakeLists.txt` - Build configuration with Google Test integration for both testing approaches
+```
+15.Unit_Testing/
+├── README.md                        - This documentation
+├── CMakeLists.txt                   - Build configuration
+├── src/                             - Source implementations
+│   ├── CMakeLists.txt              - Library build configuration
+│   └── kernels/                    - Core CUDA kernels
+│       ├── vector_add_2d.cu        - Optimized 2D vector operations
+│       └── vector_add_2d.h         - Kernel declarations
+└── test/                            - Test files
+    ├── CMakeLists.txt              - Test build configuration
+    └── unit/                        - Unit tests
+        ├── kernels/                - Kernel tests
+        │   └── test_vector_add_2d.cu     - Direct inclusion testing
+        └── part_specific/          - Module-specific tests
+            └── test_vector_add_2d_with_lib.cu - Library-based testing
+```
 
 ## Implemented Kernels
 
@@ -46,7 +58,7 @@ This project demonstrates two methods for testing CUDA device functions and kern
 
 ### Method 1: Direct .cu File Inclusion (Recommended Default)
 
-**File:** `test_vector_add_2d.cu`
+**File:** `test/unit/kernels/test_vector_add_2d.cu`
 
 This approach directly includes the CUDA implementation file in the test file, allowing access to all device functions, including `__device__` functions that are not normally accessible from external compilation units.
 
@@ -79,7 +91,7 @@ add_executable(${PROJECT_NAME}_test
 
 ### Method 2: Library-Based Testing with Inline Functions
 
-**File:** `test_vector_add_2d_with_lib.cu`
+**File:** `test/unit/part_specific/test_vector_add_2d_with_lib.cu`
 
 This approach creates a library from the CUDA code and tests it through its public interface. Device functions must be marked as `__device__ __inline__` in the header file to be accessible.
 

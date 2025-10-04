@@ -4,7 +4,8 @@
 #include <climits>
 #include "cuda_utils.h"
 #include "gpu_gtest.h"
-#include "vector_add_2d.cu"  // Direct inclusion for testing device functions
+
+#include "kernels/vector_add_2d.cu"  // Direct inclusion for testing device functions
 
 // Test fixture for error handling tests
 class ErrorHandlingTest : public ::testing::Test {

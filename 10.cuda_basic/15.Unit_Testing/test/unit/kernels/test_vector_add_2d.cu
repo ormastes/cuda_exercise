@@ -1,15 +1,19 @@
 // test_vector_add_2d.cu - Tests for 2D vector operations using GPU testing framework
-#include "gpu_gtest.h"
-#include "gtest_generator.h"
-#include "vector_add_2d.h"
-#include "cuda_utils.h"  // Use our custom CUDA utilities library
 #include <gtest/gtest.h>
 #include <cuda_runtime.h>
 #include <vector>
 #include <iostream>
+#include "gpu_gtest.h"
+#include "gtest_generator.h"
+#include "cuda_utils.h"  // Use our custom CUDA utilities library
+
+// Direct inclusion of implementation for testing device functions
+#include "../../../src/kernels/vector_add_2d.cu"
+
+
 
 // Base test class (optional, can be used for shared setup)
-class GpuGeneratorWithLibTest : public ::testing::Test {
+class GpuGeneratorTest : public ::testing::Test {
 protected:
     void SetUp() override {
         // Any common setup
@@ -17,7 +21,7 @@ protected:
 };
 
 // Test with ALIGNED mode (round-robin)
-GPU_TEST_G(GpuGeneratorWithLibTest, AlignedMode) {
+GPU_TEST_G(GpuGeneratorTest, AlignedMode) {
     int x = GPU_GENERATOR(1, 2, 3, 4);
     int y = GPU_GENERATOR(100, 200, 300);
     int z = GPU_GENERATOR(1000, 2000);
@@ -35,7 +39,7 @@ GPU_TEST_G(GpuGeneratorWithLibTest, AlignedMode) {
 }
 
 // Test square function with generators
-GPU_TEST_G(GpuGeneratorWithLibTest, square) {
+GPU_TEST_G(GpuGeneratorTest, square) {
     float a = GPU_GENERATOR(1.0f, 2.0f, 3.0f, 4.0f);
     GPU_USE_GENERATOR();  // Use default FULL mode for single generator
 
@@ -48,7 +52,7 @@ GPU_TEST_G(GpuGeneratorWithLibTest, square) {
 
 
 // Generator test with custom launch configuration
-GPU_TEST_G_CFG(GpuGeneratorWithLibTest, ThreadConfig, 2, 32) {
+GPU_TEST_G_CFG(GpuGeneratorTest, ThreadConfig, 2, 32) {
     int threads = GPU_GENERATOR(32, 64, 128);
     int blocks = GPU_GENERATOR(1, 2, 4);
     GPU_USE_GENERATOR();  // 3 * 3 = 9 combinations
@@ -66,7 +70,7 @@ GPU_TEST_G_CFG(GpuGeneratorWithLibTest, ThreadConfig, 2, 32) {
 }
 
 // Test with floating point values
-GPU_TEST_G(GpuGeneratorWithLibTest, FloatOperations) {
+GPU_TEST_G(GpuGeneratorTest, FloatOperations) {
     float scale = GPU_GENERATOR(0.5f, 1.0f, 2.0f);
     float offset = GPU_GENERATOR(-1.0f, 0.0f, 1.0f);
     GPU_USE_GENERATOR();  // 3 * 3 = 9 combinations
@@ -80,7 +84,7 @@ GPU_TEST_G(GpuGeneratorWithLibTest, FloatOperations) {
 }
 
 // Complex test with multiple generators
-GPU_TEST_G(GpuGeneratorWithLibTest, MatrixDimensions) {
+GPU_TEST_G(GpuGeneratorTest, MatrixDimensions) {
     int rows = GPU_GENERATOR(16, 32, 64);
     int cols = GPU_GENERATOR(8, 16, 32, 64);
     int depth = GPU_GENERATOR(1, 3);
@@ -95,7 +99,7 @@ GPU_TEST_G(GpuGeneratorWithLibTest, MatrixDimensions) {
 }
 
 // Test with boolean logic
-GPU_TEST_G(GpuGeneratorWithLibTest, BooleanLogic) {
+GPU_TEST_G(GpuGeneratorTest, BooleanLogic) {
     int condition1 = GPU_GENERATOR(0, 1);
     int condition2 = GPU_GENERATOR(0, 1);
     int condition3 = GPU_GENERATOR(0, 1);
@@ -123,13 +127,12 @@ GPU_TEST_G(GpuGeneratorWithLibTest, BooleanLogic) {
 }
 
 // Test with grid-stride loop
-dim3 block(16, 16);
-dim3 grid(4, 4);  // Fixed configuration for this test
-GPU_TEST_G_CFG(GpuGeneratorWithLibTest, GridStrideLoop, grid, block) {
+GPU_TEST_G_CFG(GpuGeneratorTest, GridStrideLoop, 4, 64) {
     int array_size = GPU_GENERATOR(64, 128, 256);
     int multiplier = GPU_GENERATOR(2, 3);
     GPU_USE_GENERATOR();  // 3 * 2 = 6 combinations
 
+#ifdef __CUDA_ARCH__
     GPU_FOR_ALL(i, array_size) {
         int value = i * multiplier;
         int expected = i * multiplier;
@@ -139,10 +142,11 @@ GPU_TEST_G_CFG(GpuGeneratorWithLibTest, GridStrideLoop, grid, block) {
             GPU_EXPECT_EQ(value, 0);
         }
     }
+#endif
 }
 
 // Test edge cases
-GPU_TEST_G(GpuGeneratorWithLibTest, EdgeCases) {
+GPU_TEST_G(GpuGeneratorTest, EdgeCases) {
     int negative = GPU_GENERATOR(-10, -5, -1);
     int zero = GPU_GENERATOR(0);
     int positive = GPU_GENERATOR(1, 5, 10);
@@ -164,10 +168,10 @@ GPU_TEST_G(GpuGeneratorWithLibTest, EdgeCases) {
 //==================================================//
 
 // Test fixture for host-side generator tests
-class HostGeneratorWithLibTest : public ::gtest_generator::TestWithGenerator {
+class HostGeneratorTest : public ::gtest_generator::TestWithGenerator {
 };
 
-TEST_G(HostGeneratorWithLibTest, VectorAdd2D) {
+TEST_G(HostGeneratorTest, VectorAdd2D) {
     // Generate different test dimensions
     int width = GENERATOR(16, 32, 64);
     int height = GENERATOR(16, 32, 64);
@@ -212,7 +216,7 @@ TEST_G(HostGeneratorWithLibTest, VectorAdd2D) {
     cuda_free(d_c);
 }
 
-TEST_G(HostGeneratorWithLibTest, ReduceSum2D) {
+TEST_G(HostGeneratorTest, ReduceSum2D) {
     // Generate test parameters
     int width = GENERATOR(8, 16, 32, 64);
     int height = GENERATOR(8, 16, 32, 64);

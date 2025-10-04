@@ -2,8 +2,9 @@
 #include <cuda_runtime.h>
 #include <iostream>
 #include <vector>
-#include "../../src/part_specific/vector_add_memory.cu"
-#include "../../src/kernels/matrix_multiply.cu"
+#define  BUILDING_LIB
+#include "part_specific/vector_add_memory.cu"
+#include "kernels/matrix_multiply.cu"
 #include "cuda_utils.h"
 
 class MemoryBenchmark {

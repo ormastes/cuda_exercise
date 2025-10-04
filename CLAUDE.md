@@ -22,16 +22,15 @@ XX.Module_Name/
 ├── CMakeLists.txt
 ├── src/
 │   ├── kernels/
-│   │   └── *.cu (kernel implementations)
-│   ├── utils/
-│   │   └── *.h, *.cu (utilities)
-│   └── examples/
-│       └── *.cu (demonstration code)
+│   │   └── *.cu (kernel implementations, reusable across parts)
+│   └── part_specific/
+│       └── *.cu (module-specific code)
 └── test/
-    ├── unit/
-    │   └── test_*.cu (unit tests)
-    └── integration/
-        └── test_*.cu (integration tests)
+    └── unit/
+        ├── kernels/
+        │   └── test_*.cu (kernel tests, reusable across parts)
+        └── part_specific/
+            └── test_*.cu (module-specific tests)
 ```
 
 ---

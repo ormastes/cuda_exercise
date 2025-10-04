@@ -6,7 +6,7 @@ set(CUDAToolkit_ROOT /usr/local/cuda-13.0)
 
 # Set CUDA architectures before project
 # 75=Turing, 80=Ampere, 86=Lovelace, native for current GPU, all for compatibility. See https://developer.nvidia.com/cuda-gpus
-set(CMAKE_CUDA_ARCHITECTURES 75;80;86)
+set(CMAKE_CUDA_ARCHITECTURES 75;80;86) 
 
 # Enable CUDA language
 project(cuda_project LANGUAGES CXX CUDA)
@@ -47,6 +47,7 @@ add_subdirectory(00.test_lib)
 
 
 set(GTEST_BASIC_LIB GTest::gtest GTest::gmock GTest::gmock_main GTestCudaGenerator)
+set(GTEST_BASIC_NO_MAIN_LIB GTest::gtest GTest::gmock GTestCudaGenerator)
 
 # Platform-specific libraries for NVTX dynamic loading
 if(WIN32)

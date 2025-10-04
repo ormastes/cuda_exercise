@@ -2,6 +2,29 @@
 
 **Goal**: Master CUDA thread hierarchy through advanced tiling strategies, warp optimization, and occupancy tuning.
 
+## Project Structure
+```
+18.Thread_Hierarchy_Practice/
+├── README.md                        - This documentation
+├── CMakeLists.txt                   - Build configuration
+├── src/                             - Source implementations
+│   ├── kernels/                     - Core CUDA kernels (reusable across parts)
+│   │   ├── matrix_multiply.cu       - Matrix multiplication evolution
+│   │   ├── vector_add_2d.h         - 2D vector addition declarations
+│   │   └── vector_add_2d.cu        - 2D grid/block configurations
+│   └── part_specific/               - Module-specific code
+│       ├── thread_operations.cu     - Thread hierarchy demonstrations
+│       └── thread_hierarchy_demo.cu - Complete demonstration program
+└── test/                            - Test files
+    └── unit/                        - Unit tests
+        ├── kernels/                 - Kernel tests (reusable across parts)
+        │   ├── test_matrix_multiply.cu    - Matrix multiplication tests
+        │   └── test_vector_add_2d.cu      - 2D vector addition tests
+        └── part_specific/           - Module-specific tests
+            ├── test_thread_operations.cu  - Thread operation tests
+            └── test_thread_hierarchy_demo.cu - Comprehensive integration tests
+```
+
 ---
 
 ## **8.1 Overview**
